@@ -10,7 +10,7 @@ Supports .env, .json, .yaml, .yml, and .ini files with automatic type detection
 """
 
 from .core import DotEnv, load_env, get_env, set_env, save_env
-from .exceptions import DotEnvError, FileNotFoundError, ParseError
+from .exceptions import DotEnvError, FileNotFoundError, ParseError, TypeConversionError
 
 __version__ = "1.0.0"
 __all__ = [
@@ -22,4 +22,5 @@ __all__ = [
     "DotEnvError",
     "FileNotFoundError",
     "ParseError",
+    "TypeConversionError"
 ]

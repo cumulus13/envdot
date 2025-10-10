@@ -16,3 +16,11 @@ traceback.log
 __pycache__/
 *.log
 *.sublime*
+
+# Added entries (4 items)
+*.json
+*.ini
+*.yaml
+*.yml
+.env
+output.env

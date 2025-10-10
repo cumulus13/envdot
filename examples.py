@@ -25,7 +25,7 @@ def example_convenience_functions():
     print("=== Convenience Functions ===")
     
     # Load environment
-    load_env('.env')
+    load_env('.env.example')
     
     # Get values
     app_name = get_env('APP_NAME', default='MyApp')
