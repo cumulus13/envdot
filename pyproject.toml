@@ -3,7 +3,7 @@ requires = ["setuptools>=45", "wheel", "setuptools_scm>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "dot-env"
+name = "envdot"
 version = "1.0.0"
 description = "Enhanced environment variable management with multi-format support"
 readme = "README.md"
@@ -12,7 +12,7 @@ license = {text = "MIT"}
 authors = [
     {name = "Hadi Cahyadi", email = "cumulus13@gmail.com"}
 ]
-keywords = ["environment", "variables", "config", "dotenv", "configuration"]
+keywords = ["environment", "variables", "config", "envdot", "configuration"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -39,10 +39,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/cumulus13/dot-env"
-Documentation = "https://github.com/cumulus13/dot-env#readme"
-Repository = "https://github.com/cumulus13/dot-env"
-"Bug Tracker" = "https://github.com/cumulus13/dot-env/issues"
+Homepage = "https://github.com/cumulus13/envdot"
+Documentation = "https://github.com/cumulus13/envdot#readme"
+Repository = "https://github.com/cumulus13/envdot"
+"Bug Tracker" = "https://github.com/cumulus13/envdot/issues"
 
 [tool.black]
 line-length = 100

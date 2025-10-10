@@ -1,6 +1,6 @@
 """Example usage of dot-env package"""
 
-from dotenv import DotEnv, load_env, get_env, set_env
+from envdot import DotEnv, load_env, get_env, set_env
 
 def example_basic_usage():
     """Basic usage example"""
@@ -260,7 +260,7 @@ def example_error_handling():
     """Error handling examples"""
     print("=== Error Handling ===")
     
-    from dotenv import FileNotFoundError, ParseError, TypeConversionError
+    from envdot import FileNotFoundError, ParseError, TypeConversionError
     
     try:
         env = DotEnv('nonexistent.env')

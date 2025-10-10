@@ -1,12 +1,12 @@
-"""Unit tests for dot-env package"""
+"""Unit tests for envdot package"""
 
 import unittest
 import tempfile
 import os
 from pathlib import Path
-from dotenv import DotEnv, load_env, get_env, set_env
-from dotenv.core import TypeDetector
-from dotenv.exceptions import FileNotFoundError, ParseError, TypeConversionError
+from envdot import DotEnv, load_env, get_env, set_env
+from envdot.core import TypeDetector
+from envdot.exceptions import FileNotFoundError, ParseError, TypeConversionError
 
 
 class TestTypeDetector(unittest.TestCase):

@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-# file: dot-env/setup.py
+# file: envdot/setup.py
 # Author: Hadi Cahyadi <cumulus13@gmail.com>
 # Date: 2025-10-10 23:58:33.095178
-# Description: Setup configuration for dot-env package
+# Description: Setup configuration for envdot package
 # License: MIT
 
 from setuptools import setup, find_packages
 import traceback
 from pathlib import Path
 
-NAME = 'dotenv'
+NAME = 'envdot'
 
 def get_version():
     """
@@ -41,14 +41,14 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="dot-env",
+    name="envdot",
     version=get_version(),
     author="Hadi Cahyadi",
     author_email="cumulus13@gmail.com",
     description="Enhanced environment variable management with multi-format support",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/cumulus13/dot-env",
+    url="https://github.com/cumulus13/envdot",
     packages=[NAME],
     classifiers=[
         "Development Status :: 4 - Beta",

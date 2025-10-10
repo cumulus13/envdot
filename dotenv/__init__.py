@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# file: dotenv/__init__.py
+# file: envdot/__init__.py
 # Author: Hadi Cahyadi <cumulus13@gmail.com>
 # Date: 2025-10-10 23:59:34.906959
 # License: MIT
 
 """
-dot-env: Enhanced environment variable management with multi-format support
+envdot: Enhanced environment variable management with multi-format support
 Supports .env, .json, .yaml, .yml, and .ini files with automatic type detection
 """
 

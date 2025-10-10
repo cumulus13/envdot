@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# file: dotenv/core.py
+# file: envdot/core.py
 # Author: Hadi Cahyadi <cumulus13@gmail.com>
 # Date: 2025-10-10 23:58:18.904513
-# Description: Core functionality for dot-env package 
+# Description: Core functionality for envdot package 
 # License: MIT
 
 import os

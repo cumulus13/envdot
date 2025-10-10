@@ -1,4 +1,4 @@
-# dot-env
+# envdot
 
 Enhanced environment variable management for Python with multi-format support and automatic type detection.
 
@@ -14,13 +14,13 @@ Enhanced environment variable management for Python with multi-format support an
 ## Installation
 
 ```bash
-pip install dot-env
+pip install envdot
 
 # With YAML support
-pip install dot-env[yaml]
+pip install envdot[yaml]
 
 # With all extras
-pip install dot-env[all]
+pip install envdot[all]
 ```
 
 ## Quick Start
@@ -28,7 +28,7 @@ pip install dot-env[all]
 ### Basic Usage
 
 ```python
-from dotenv import DotEnv
+from envdot import DotEnv
 
 # Auto-detect and load from common config files (.env, config.json, etc.)
 env = DotEnv()
@@ -53,7 +53,7 @@ env.save('.env')
 ### Convenience Functions
 
 ```python
-from dotenv import load_env, get_env, set_env, save_env
+from envdot import load_env, get_env, set_env, save_env
 
 # Load configuration
 load_env('.env')
