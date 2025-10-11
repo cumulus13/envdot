@@ -12,7 +12,7 @@ from pathlib import Path
 NAME = 'envdot'
 
 def generate_toml(version="0.1.0"):
-    with open(str(Path(__file__).parent / 'pyproject.toml'), 'wb') as f_toml:
+    with open(str(Path(__file__).parent / 'pyproject.toml'), 'w') as f_toml:
         f_toml.write("""[build-system]
 requires = ["setuptools>=45", "wheel", "setuptools_scm>=6.2"]
 build-backend = "setuptools.build_meta"
