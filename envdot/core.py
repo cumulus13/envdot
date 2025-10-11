@@ -1,9 +1,4 @@
-#!/usr/bin/env python3
-# file: envdot/core.py
-# Author: Hadi Cahyadi <cumulus13@gmail.com>
-# Date: 2025-10-10 23:58:18.904513
-# Description: Core functionality for envdot package 
-# License: MIT
+"""Core functionality for dot-env package"""
 
 import os
 import json
@@ -265,7 +260,8 @@ class DotEnv:
         return None
     
     def load(self, filepath: Optional[Union[str, Path]] = None, 
-             override: bool = True, apply_to_os: bool = True) -> 'DotEnv':
+             override: bool = True, apply_to_os: bool = True,
+             store_typed: bool = True) -> 'DotEnv':
         """
         Load environment variables from file
         
@@ -273,9 +269,14 @@ class DotEnv:
             filepath: Path to configuration file (uses initialized path if None)
             override: Override existing values in internal storage
             apply_to_os: Apply loaded variables to os.environ
+            store_typed: Store typed values internally (recommended: True)
             
         Returns:
             self for method chaining
+            
+        Note:
+            os.environ only stores strings. Use env.get() or get_env() 
+            to retrieve typed values, not os.getenv()
         """
         if filepath:
             self._filepath = Path(filepath)
@@ -372,6 +373,12 @@ class DotEnv:
             os.environ[key] = TypeDetector.to_string(value)
         
         return self
+
+    def setenv(self, *args, **kwargs):
+        return self.set(*args, **kwargs)
+
+    def getenv(self, *args, **kwargs):
+        return self.get(*args, **kwargs)
     
     def save(self, filepath: Optional[Union[str, Path]] = None, 
              format: Optional[str] = None) -> 'DotEnv':
@@ -405,6 +412,9 @@ class DotEnv:
         
         saver(save_path, self._data)
         return self
+
+    def save_env(self, *args, **kwargs):
+        return self.save(*args, **kwargs)
     
     def delete(self, key: str, remove_from_os: bool = True) -> 'DotEnv':
         """
@@ -427,6 +437,9 @@ class DotEnv:
     
     def all(self) -> Dict[str, Any]:
         """Get all environment variables as dictionary"""
+        return self._data.copy()
+
+    def show(self):
         return self._data.copy()
     
     def keys(self) -> list:
@@ -471,18 +484,35 @@ class DotEnv:
 _global_env = DotEnv(auto_load=False)
 
 
-def load_env(filepath: Optional[Union[str, Path]] = None, **kwargs) -> DotEnv:
+def load_env(filepath: Optional[Union[str, Path]] = None, 
+             auto_replace_getenv: bool = True,
+             patch_os: bool = True,
+             **kwargs) -> DotEnv:
     """
     Convenience function to load environment variables
     
     Args:
         filepath: Path to configuration file
+        auto_replace_getenv: Automatically replace os.getenv() with typed version (default: True)
+        patch_os: Also patch os module with helper functions like os.save_env() (default: True)
         **kwargs: Additional arguments passed to DotEnv.load()
     
     Returns:
         DotEnv instance
     """
     global _global_env
+    
+    # Auto-replace os.getenv with typed version
+    if auto_replace_getenv:
+        from .helpers import replace_os_getenv
+        replace_os_getenv()
+    
+    # Patch os module with additional helpers (NOW DEFAULT!)
+    if patch_os:
+        from .helpers import patch_os_module
+        patch_os_module()
+        # print("[DEBUG] os module patched - os.save_env() should be available")
+    
     _global_env = DotEnv(filepath=filepath, auto_load=False)
     _global_env.load(**kwargs)
     return _global_env

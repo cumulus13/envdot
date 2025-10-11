@@ -11,6 +11,7 @@ Supports .env, .json, .yaml, .yml, and .ini files with automatic type detection
 
 from .core import DotEnv, load_env, get_env, set_env, save_env
 from .exceptions import DotEnvError, FileNotFoundError, ParseError, TypeConversionError
+from .helpers import getenv_typed, getenv_int, getenv_float, getenv_bool, getenv_str, setenv_typed, patch_os_module
 
 __version__ = "1.0.0"
 __all__ = [

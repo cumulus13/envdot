@@ -24,3 +24,8 @@ __pycache__/
 *.yml
 .env
 output.env
+# Added entries (1 items)
+pyproject.toml.1
+
+# Added entries (1 items)
+QUICKSTART.md

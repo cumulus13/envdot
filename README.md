@@ -37,17 +37,37 @@ env = DotEnv()
 env = DotEnv('.env')
 
 # Get values with automatic type detection
-db_host = env.get('DB_HOST')          # Returns string
-db_port = env.get('DB_PORT')          # Returns int (auto-detected)
-debug_mode = env.get('DEBUG')         # Returns bool (auto-detected)
-api_timeout = env.get('API_TIMEOUT')  # Returns float (auto-detected)
+db_host = env.get('DB_HOST')            # Returns string
+# or
+db_host = os.getenv('DB_HOST')          # Returns string
+
+db_port = env.get('DB_PORT')            # Returns int (auto-detected)
+# or
+db_port = os.getenv('DB_PORT')         # Returns int (auto-detected)
+
+debug_mode = env.get('DEBUG')           # Returns bool (auto-detected)
+# or
+debug_mode = os.getenv('DEBUG')        # Returns bool (auto-detected)
+
+api_timeout = env.get('API_TIMEOUT')    # Returns float (auto-detected)
+# or
+api_timeout = os.getenv('API_TIMEOUT') # Returns float (auto-detected)
 
 # Set values
 env.set('NEW_KEY', 'value')
+# or
+env.setenv('NEW_KEY', 'value')
+
 env.set('FEATURE_ENABLED', True)
+# or
+env.setenv('FEATURE_ENABLED', True)
 
 # Save to file
 env.save('.env')
+# or
+env.save()
+# or
+os.save_env()
 ```
 
 ### Convenience Functions
@@ -58,6 +78,9 @@ from envdot import load_env, get_env, set_env, save_env
 # Load configuration
 load_env('.env')
 
+# or just
+load_env()
+
 # Get values
 database_url = get_env('DATABASE_URL')
 max_connections = get_env('MAX_CONNECTIONS', default=100)
@@ -66,7 +89,7 @@ max_connections = get_env('MAX_CONNECTIONS', default=100)
 set_env('NEW_FEATURE', True)
 
 # Save changes
-save_env('.env')
+save_env('.env') # or just save_env()
 ```
 
 ### Working with Different File Formats
@@ -107,13 +130,15 @@ The package automatically detects and converts types:
 # APP_NAME=MyApp
 # EMPTY_VALUE=
 
-env = DotEnv('.env')
+env = DotEnv('.env') # or load_env() or load_env('.env')
 
 env.get('DEBUG')      # Returns: True (bool)
 env.get('PORT')       # Returns: 8080 (int)
 env.get('TIMEOUT')    # Returns: 30.5 (float)
 env.get('APP_NAME')   # Returns: 'MyApp' (str)
 env.get('EMPTY_VALUE') # Returns: None
+
+# env.get same as os.getenv
 ```
 
 ### Explicit Type Casting
