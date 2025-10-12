@@ -324,7 +324,11 @@ class DotEnv(metaclass=DotEnvMeta):
             self._filepath = Path(filepath)
         
         if not self._filepath:
-            raise FileNotFoundError("No configuration file specified")
+            # raise FileNotFoundError("No configuration (.env/.json/.yml) file specified")
+            print("No configuration (.env/.json/.yml) file specified, create new one")
+            self._filepath = str(Path.cwd() / '.env')
+            with open(self._filepath, 'w') as f:
+                f.write('')
         
         if not self._filepath.exists():
             raise FileNotFoundError(f"File not found: {self._filepath}")
