@@ -224,8 +224,50 @@ class FileHandler:
         with open(filepath, 'w', encoding='utf-8') as f:
             config.write(f)
 
+class DotEnvMeta(type):
+    """
+    Metaclass to enable attribute-style access and automatic saving on assignment
+    """
+    
+    def __call__(cls, *args, **kwargs):
+        """Called when class is instantiated: config = DotEnv()"""
+        instance = super().__call__(*args, **kwargs)
+        return instance
+    
+    def __getattribute__(cls, name):
+        """Handle attribute access on class level: DotEnv.DEBUG_SERVER"""
+        # First check if it's a regular class attribute
+        try:
+            return super().__getattribute__(name)
+        except AttributeError:
+            # If not found, try to get from global instance
+            global _global_env
+            if hasattr(_global_env, name):
+                return getattr(_global_env, name)
+            raise
+    
+    def __setattr__(cls, name, value):
+        """Handle attribute assignment on class level: DotEnv.DEBUG_SERVER = True"""
+        # Allow setting regular class attributes
+        if name.startswith('_') or name in cls.__dict__:
+            super().__setattr__(name, value)
+        else:
+            # Set on global instance and save
+            global _global_env
+            if hasattr(_global_env, name):
+                setattr(_global_env, name, value)
+            else:
+                # For new attributes, use __set__ method
+                _global_env.__set__(name, value)
+    
+    def __getattr__(cls, name):
+        """Fallback for attribute access"""
+        global _global_env
+        if hasattr(_global_env, name):
+            return getattr(_global_env, name)
+        raise AttributeError(f"'{cls.__name__}' object has no attribute '{name}'")
 
-class DotEnv:
+class DotEnv(metaclass=DotEnvMeta):
     """Main class for managing environment variables from multiple file formats"""
     
     def __init__(self, filepath: Optional[Union[str, Path]] = None, auto_load: bool = True):
@@ -464,6 +506,24 @@ class DotEnv:
         self._data.clear()
         return self
     
+    def __getattr__(self, name: str) -> Any:
+        """Handle attribute-style access: config.DEBUG_SERVER"""
+        if name in self._data:
+            return self._data[name]
+        elif name in os.environ:
+            return TypeDetector.auto_detect(os.environ[name])
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+    
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Handle attribute assignment: config.DEBUG_SERVER = True"""
+        # Handle private attributes normally
+        if name.startswith('_'):
+            super().__setattr__(name, value)
+        else:
+            # Set the value and auto-save
+            self.set(name, value, apply_to_os=True)
+            self.save()
+
     def __getitem__(self, key: str) -> Any:
         """Allow dictionary-style access: env['KEY']"""
         return self.get(key)
@@ -479,6 +539,14 @@ class DotEnv:
     def __repr__(self) -> str:
         return f"DotEnv(filepath={self._filepath}, vars={len(self._data)})"
 
+    def __call__(self, key: str, value: Any = None, default: Any = None) -> Any:
+        """Callable interface: config('DEBUG_SERVER') or config('DEBUG_SERVER', True)"""
+        if value is not None:
+            self.set(key, value)
+            self.save()  # Auto-save when setting via call
+            return self
+        else:
+            return self.get(key, default)
 
 # Global instance for convenience functions
 _global_env = DotEnv(auto_load=False)
@@ -517,6 +585,9 @@ def load_env(filepath: Optional[Union[str, Path]] = None,
     _global_env.load(**kwargs)
     return _global_env
 
+def show():
+    global _global_env
+    return _global_env.show()
 
 def get_env(key: str, default: Any = None, cast_type: Optional[type] = None) -> Any:
     """

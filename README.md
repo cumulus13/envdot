@@ -27,6 +27,135 @@ pip install envdot[all]
 
 ### Basic Usage
 
+```bash
+$ cat .env
+CELERY_BACKEND=redis://redis:6379/0
+CELERY_BROKER=redis://redis:6379/0
+DEBUG=true
+DEBUGGER_SERVER=5.5
+DEBUG_SERVER=false
+DJANGO_ALLOWED_HOSTS="localhost 127.0.0.1 [::1] 192.168.100.2 192.168.100.2"
+POSTGRES_DB=django_celery
+POSTGRES_PASSWORD=Xxxnuxer13
+POSTGRES_USER=celery_admin
+PYTHONDONTWRITEBYTECODE=true
+PYTHONUNBUFFERED=true
+RABBITMQ_DEFAULT_PASS=Xxxnuxer13
+RABBITMQ_DEFAULT_USER=syslog
+RABBITMQ_HOST_DJANGO=rabbitmq
+RABBITMQ_MANAGEMENT=true
+RABBITMQ_PASSWORD_DJANGO=Xxxnuxer13
+RABBITMQ_USERNAME_DJANGO=syslog
+SECRET_KEY=dbaa1_i7%*3r9-=z-+_mz4r-!qeed@(-a_r(g@k8jo8y3r27%m
+```
+
+```python
+In [1]: from envdot import load_env, show
+
+In [2]: load_env()
+Out[2]: DotEnv(filepath=.env, vars=18)
+
+In [3]: show()
+Out[3]:
+{'CELERY_BACKEND': 'redis://redis:6379/0',
+ 'CELERY_BROKER': 'redis://redis:6379/0',
+ 'DEBUG': True,
+ 'DEBUGGER_SERVER': 5.5,
+ 'DEBUG_SERVER': False,
+ 'DJANGO_ALLOWED_HOSTS': 'localhost 127.0.0.1 [::1] 192.168.100.2 192.168.100.2',
+ 'POSTGRES_DB': 'django_celery',
+ 'POSTGRES_PASSWORD': 'password1234-8',
+ 'POSTGRES_USER': 'celery_admin',
+ 'PYTHONDONTWRITEBYTECODE': True,
+ 'PYTHONUNBUFFERED': True,
+ 'RABBITMQ_DEFAULT_PASS': 'hackmeplease',
+ 'RABBITMQ_DEFAULT_USER': 'syslog',
+ 'RABBITMQ_HOST_DJANGO': 'rabbitmq',
+ 'RABBITMQ_MANAGEMENT': True,
+ 'RABBITMQ_PASSWORD_DJANGO': '123-8',
+ 'RABBITMQ_USERNAME_DJANGO': 'syslog',
+ 'SECRET_KEY': 'dbaa1_i7%*3r9-=z-+_mz4r-!qeed@(-a_r(g@k8jo8y3r27%m'}
+
+In [4]: config = load_env()
+
+In [5]: config.show()
+Out[5]:
+{'CELERY_BACKEND': 'redis://redis:6379/0',
+ 'CELERY_BROKER': 'redis://redis:6379/0',
+ 'DEBUG': True,
+ 'DEBUGGER_SERVER': 5.5,
+ 'DEBUG_SERVER': False,
+ 'DJANGO_ALLOWED_HOSTS': 'localhost 127.0.0.1 [::1] 192.168.100.2 192.168.100.2',
+ 'POSTGRES_DB': 'django_celery',
+ 'POSTGRES_PASSWORD': 'password1234-8',
+ 'POSTGRES_USER': 'celery_admin',
+ 'PYTHONDONTWRITEBYTECODE': True,
+ 'PYTHONUNBUFFERED': True,
+ 'RABBITMQ_DEFAULT_PASS': 'hackmeplease',
+ 'RABBITMQ_DEFAULT_USER': 'syslog',
+ 'RABBITMQ_HOST_DJANGO': 'rabbitmq',
+ 'RABBITMQ_MANAGEMENT': True,
+ 'RABBITMQ_PASSWORD_DJANGO': '123-8',
+ 'RABBITMQ_USERNAME_DJANGO': 'syslog',
+ 'SECRET_KEY': 'dbaa1_i7%*3r9-=z-+_mz4r-!qeed@(-a_r(g@k8jo8y3r27%m'}
+
+In [6]: config.DEBUG_SERVER
+Out[6]: False
+
+In [7]: config.DEBUG_SERVER = True
+
+In [8]: show()
+Out[8]:
+{'CELERY_BACKEND': 'redis://redis:6379/0',
+ 'CELERY_BROKER': 'redis://redis:6379/0',
+ 'DEBUG': True,
+ 'DEBUGGER_SERVER': 5.5,
+ 'DEBUG_SERVER': True,
+ 'DJANGO_ALLOWED_HOSTS': 'localhost 127.0.0.1 [::1] 192.168.100.2 192.168.100.2',
+ 'POSTGRES_DB': 'django_celery',
+ 'POSTGRES_PASSWORD': 'password1234-8',
+ 'POSTGRES_USER': 'celery_admin',
+ 'PYTHONDONTWRITEBYTECODE': True,
+ 'PYTHONUNBUFFERED': True,
+ 'RABBITMQ_DEFAULT_PASS': 'hackmeplease',
+ 'RABBITMQ_DEFAULT_USER': 'syslog',
+ 'RABBITMQ_HOST_DJANGO': 'rabbitmq',
+ 'RABBITMQ_MANAGEMENT': True,
+ 'RABBITMQ_PASSWORD_DJANGO': '123-8',
+ 'RABBITMQ_USERNAME_DJANGO': 'syslog',
+ 'SECRET_KEY': 'dbaa1_i7%*3r9-=z-+_mz4r-!qeed@(-a_r(g@k8jo8y3r27%m'}
+
+In [9]: config.show()
+Out[9]:
+{'CELERY_BACKEND': 'redis://redis:6379/0',
+ 'CELERY_BROKER': 'redis://redis:6379/0',
+ 'DEBUG': True,
+ 'DEBUGGER_SERVER': 5.5,
+ 'DEBUG_SERVER': True,
+ 'DJANGO_ALLOWED_HOSTS': 'localhost 127.0.0.1 [::1] 192.168.100.2 192.168.100.2',
+ 'POSTGRES_DB': 'django_celery',
+ 'POSTGRES_PASSWORD': 'password1234-8',
+ 'POSTGRES_USER': 'celery_admin',
+ 'PYTHONDONTWRITEBYTECODE': True,
+ 'PYTHONUNBUFFERED': True,
+ 'RABBITMQ_DEFAULT_PASS': 'hackmeplease',
+ 'RABBITMQ_DEFAULT_USER': 'syslog',
+ 'RABBITMQ_HOST_DJANGO': 'rabbitmq',
+ 'RABBITMQ_MANAGEMENT': True,
+ 'RABBITMQ_PASSWORD_DJANGO': '123-8',
+ 'RABBITMQ_USERNAME_DJANGO': 'syslog',
+ 'SECRET_KEY': 'dbaa1_i7%*3r9-=z-+_mz4r-!qeed@(-a_r(g@k8jo8y3r27%m'}
+
+In [10]: os.getenv('DEBUG_SERVER')
+Out[10]: True
+
+In [11]: config.DEBUG_SERVER = False
+
+In [12]: os.getenv('DEBUG_SERVER')
+Out[12]: False
+
+```
+
 ```python
 from envdot import DotEnv
 
