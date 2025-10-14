@@ -6,7 +6,11 @@ import configparser
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 from .exceptions import FileNotFoundError, ParseError, TypeConversionError
-
+try:
+    import json5  # pip install json5
+    HAS_JSON5 = True
+except ImportError:
+    HAS_JSON5 = False
 
 class TypeDetector:
     """Automatic type detection and conversion"""
@@ -65,14 +69,29 @@ class FileHandler:
     @staticmethod
     def detect_format(filepath: Path) -> str:
         """Detect file format from extension"""
-        ext = filepath.suffix.lower()
-        if ext in ('.yaml', '.yml'):
+        # print(f"filepath: {filepath}, name: '{filepath.name}'")
+        
+        # Method 1: Handle dotfiles properly
+        name = filepath.name
+        
+        # Untuk file seperti '.json', '.env' - ini adalah dotfiles, bukan file dengan ekstensi
+        if name.startswith('.') and len(name.split('.')) == 2:
+            # Ini adalah dotfile seperti '.json', '.env'
+            ext = name  # seluruh nama file adalah 'ekstensi'
+            # print(f"Dotfile detected: {ext}")
+        else:
+            # File normal dengan ekstensi
+            ext = filepath.suffix.lower()
+            # print(f"Normal file extension: {ext}")
+        
+        # Deteksi format
+        if ext in ('.yaml', '.yml') or name in ('.yaml', '.yml'):
             return 'yaml'
-        elif ext == '.json':
+        elif ext == '.json' or name == '.json':
             return 'json'
-        elif ext == '.ini':
+        elif ext == '.ini' or name == '.ini':
             return 'ini'
-        elif ext == '.env':
+        elif ext == '.env' or name == '.env':
             return 'env'
         else:
             return 'env'  # Default to .env format
@@ -108,18 +127,57 @@ class FileHandler:
     
     @staticmethod
     def load_json_file(filepath: Path) -> Dict[str, str]:
-        """Load .json file"""
+        """Load .json file with fallback to JSON5 for invalid JSON"""
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+                content = f.read()
             
-            # Flatten nested structures if needed
+            # Try standard JSON first
+            try:
+                data = json.loads(content)
+            except json.JSONDecodeError:
+                if HAS_JSON5:
+                    # Use JSON5 which supports single quotes and trailing commas
+                    data = json5.loads(content)
+                else:
+                    # Fallback to our preprocessor
+                    processed_content = FileHandler._fix_invalid_json(content)
+                    data = json.loads(processed_content)
+            
+            # Flatten nested structures
             flattened = {}
             FileHandler._flatten_dict(data, flattened)
             return flattened
-        except json.JSONDecodeError as e:
+        except Exception as e:
             raise ParseError(f"Invalid JSON format: {e}")
-    
+
+    @staticmethod
+    def _fix_invalid_json(content: str) -> str:
+        """
+        Fix common JSON issues:
+        1. Single quotes to double quotes
+        2. Trailing commas
+        3. Escaped characters handling
+        """
+        # Step 1: Protect escaped sequences
+        content = content.replace('\\"', '___ESCAPED_DOUBLE___')
+        content = content.replace("\\'", '___ESCAPED_SINGLE___')
+        
+        # Step 2: Replace single quotes with double quotes
+        content = content.replace("'", '"')
+        
+        # Step 3: Restore protected sequences
+        content = content.replace('___ESCAPED_DOUBLE___', '\\"')
+        content = content.replace('___ESCAPED_SINGLE___', "'")
+        
+        # Step 4: Remove trailing commas before closing braces/brackets
+        # Remove trailing comma before }
+        content = re.sub(r',\s*}', '}', content)
+        # Remove trailing comma before ]
+        content = re.sub(r',\s*]', ']', content)
+        
+        return content
+
     @staticmethod
     def load_yaml_file(filepath: Path) -> Dict[str, str]:
         """Load .yaml/.yml file"""
@@ -300,10 +358,62 @@ class DotEnv(metaclass=DotEnvMeta):
             if filepath.exists():
                 return filepath
         return None
+
+    def find_settings_recursive(self, start_path=None, max_depth=5, filename='.env', exceptions=['node_modules', 'venv', '__pycache__']):
+        """
+        Recursively search for configuration (.env/.json/.yml) file downwards from start_path
+        Returns the full path of configuration file if found, None otherwise
+        """
+
+        filenames = [filename] if not isinstance(filename, list) else filename
+        
+        # Add default config files if not already specified
+        default_files = ['.json', '.yaml', '.yml']
+        for default_file in default_files:
+            if not any(f.endswith(default_file) for f in filenames):
+                filenames.append(default_file)
+
+        if start_path is None:
+            start_path = os.getcwd()
+
+        # print(f"filenames: {filenames}")
+
+        # Ensure start_path is string
+        start_path = str(start_path)
+        
+        def search_directory(path, current_depth=0):
+            if current_depth > max_depth:
+                return None
+            
+            # Check each filename in current directory
+            for f in filenames:
+                settings_path = os.path.join(path, f)
+                # print(f"checking: {settings_path}")
+                if os.path.isfile(settings_path):
+                    # print(f"FOUND FILE CONFIG: {settings_path}")
+                    return Path(settings_path)
+            
+            # Search in subdirectories
+            if current_depth < max_depth:
+                try:
+                    for item in os.listdir(path):
+                        item_path = os.path.join(path, item)
+                        if (os.path.isdir(item_path) and 
+                            item not in exceptions and 
+                            '-env' not in item):
+                            result = search_directory(item_path, current_depth + 1)
+                            if result:
+                                return result
+                except (PermissionError, OSError):
+                    pass
+            
+            return None
+        
+        return search_directory(start_path)
     
     def load(self, filepath: Optional[Union[str, Path]] = None, 
              override: bool = True, apply_to_os: bool = True,
-             store_typed: bool = True) -> 'DotEnv':
+             store_typed: bool = True, recursive: bool = True) -> 'DotEnv':
         """
         Load environment variables from file
         
@@ -320,13 +430,23 @@ class DotEnv(metaclass=DotEnvMeta):
             os.environ only stores strings. Use env.get() or get_env() 
             to retrieve typed values, not os.getenv()
         """
+
+        # print(f"filepath: {filepath}")
+
         if filepath:
             self._filepath = Path(filepath)
+        
+        # print(f"self._filepath [1]: {self._filepath}")
+
+        if not self._filepath:
+            self._filepath = self.find_settings_recursive()
+
+        # print(f"self._filepath [2]: {self._filepath}")
         
         if not self._filepath:
             # raise FileNotFoundError("No configuration (.env/.json/.yml) file specified")
             print("No configuration (.env/.json/.yml) file specified, create new one")
-            self._filepath = str(Path.cwd() / '.env')
+            self._filepath = Path.cwd() / '.env'
             with open(self._filepath, 'w') as f:
                 f.write('')
         
@@ -335,6 +455,7 @@ class DotEnv(metaclass=DotEnvMeta):
         
         # Detect format
         self._format = FileHandler.detect_format(self._filepath)
+        # print(f"self._format: {self._format}")
         
         # Load based on format
         loaders = {
