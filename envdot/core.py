@@ -328,7 +328,7 @@ class DotEnvMeta(type):
 class DotEnv(metaclass=DotEnvMeta):
     """Main class for managing environment variables from multiple file formats"""
     
-    def __init__(self, filepath: Optional[Union[str, Path]] = None, auto_load: bool = True):
+    def __init__(self, filepath: Optional[Union[str, Path]] = None, auto_load: bool = True, newone: bool = False):
         """
         Initialize DotEnv instance
         
@@ -339,6 +339,7 @@ class DotEnv(metaclass=DotEnvMeta):
         self._data: Dict[str, Any] = {}
         self._filepath: Optional[Path] = None
         self._format: Optional[str] = None
+        self.newone = newone
         
         if filepath:
             self._filepath = Path(filepath)
@@ -413,7 +414,7 @@ class DotEnv(metaclass=DotEnvMeta):
     
     def load(self, filepath: Optional[Union[str, Path]] = None, 
              override: bool = True, apply_to_os: bool = True,
-             store_typed: bool = True, recursive: bool = True) -> 'DotEnv':
+             store_typed: bool = True, recursive: bool = True, newone: bool = False) -> 'DotEnv':
         """
         Load environment variables from file
         
@@ -443,7 +444,7 @@ class DotEnv(metaclass=DotEnvMeta):
 
         # print(f"self._filepath [2]: {self._filepath}")
         
-        if not self._filepath:
+        if not self._filepath and (newone or self.newone):
             # raise FileNotFoundError("No configuration (.env/.json/.yml) file specified")
             print("No configuration (.env/.json/.yml) file specified, create new one")
             self._filepath = Path.cwd() / '.env'
@@ -562,7 +563,9 @@ class DotEnv(metaclass=DotEnvMeta):
         save_path = Path(filepath) if filepath else self._filepath
         
         if not save_path:
-            raise ValueError("No filepath specified for saving")
+            #raise ValueError("No filepath specified for saving")
+            print("[envdot] warning: No file config found !")
+            return self
         
         save_format = format or FileHandler.detect_format(save_path)
         
