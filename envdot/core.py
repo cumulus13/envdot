@@ -39,7 +39,7 @@ class TypeDetector:
         
         # Check for integer
         try:
-            if '.' not in value and 'e' not in value.lower():
+            if '.' not in value and 'e' not in value.lower() and str(value).isdigit():
                 return int(value)
         except (ValueError, AttributeError):
             pass
@@ -451,8 +451,12 @@ class DotEnv(metaclass=DotEnvMeta):
             with open(self._filepath, 'w') as f:
                 f.write('')
         
-        if not self._filepath.exists():
-            raise FileNotFoundError(f"File not found: {self._filepath}")
+        if self._filepath and not self._filepath.exists():
+            # raise FileNotFoundError(f"File not found: {self._filepath}")
+            # print(f"File not found: {self._filepath}")
+            return self
+        elif not self._filepath:
+            return self
         
         # Detect format
         self._format = FileHandler.detect_format(self._filepath)
@@ -517,7 +521,14 @@ class DotEnv(metaclass=DotEnvMeta):
                     if isinstance(value, str):
                         return value.lower() in ('true', 'yes', 'on', '1')
                     return bool(value)
+                elif cast_type == list:
+                    value = [i.strip() for i in re.split(",| ", value, re.I) if i]
+                    return value
+                elif cast_type == tuple:
+                    value = [i.strip() for i in re.split(",| ", value, re.I) if i]
+                    
                 return cast_type(value)
+
             except (ValueError, TypeError) as e:
                 raise TypeConversionError(f"Cannot convert '{value}' to {cast_type.__name__}: {e}")
         

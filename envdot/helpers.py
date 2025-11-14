@@ -1,6 +1,7 @@
 """Helper functions for enhanced environment variable access"""
 
 import os
+import re
 from typing import Any, Optional, TypeVar
 from .core import TypeDetector
 
@@ -36,6 +37,7 @@ def getenv_typed(key: str, default: Any = None, cast_type: Optional[type] = None
         >>> getenv_typed('MISSING', default=100)  # Returns: 100
     """
     # ALWAYS use the saved original, never os.getenv
+
     value = os._dot_env_original_getenv(key)
     
     if value is None:
@@ -52,7 +54,15 @@ def getenv_typed(key: str, default: Any = None, cast_type: Optional[type] = None
                     return typed_value
                 if isinstance(typed_value, str):
                     return typed_value.lower() in ('true', 'yes', 'on', '1')
+
                 return bool(typed_value)
+            elif cast_type == list:
+                value = [i.strip() for i in re.split(",| ", value, re.I) if i]
+                return value
+            elif cast_type == tuple:
+                value = [i.strip() for i in re.split(",| ", value, re.I) if i]
+                return tuple(typed_value)
+
             return cast_type(typed_value)
         except (ValueError, TypeError):
             # If casting fails, return default or original value
