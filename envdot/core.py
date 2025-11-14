@@ -1,6 +1,7 @@
 """Core functionality for dot-env package"""
 
 import os
+import re
 import json
 import configparser
 from pathlib import Path
