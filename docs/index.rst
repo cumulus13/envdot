@@ -26,7 +26,7 @@ Features
    Load configuration from ``.env``, ``.json``, ``.yaml``, ``.yml``, and ``.ini`` files.
 
 🎯 **Automatic Type Detection**
-   Automatically converts strings to ``bool``, ``int``, ``float``, or keeps as ``string``.
+   Automatically converts strings to ``bool``, ``int``, ``float``, or keeps as ``string``. and Support converts strings to ``list``, ``tuple`` by using ``cast_type``.
 
 💾 **Read and Write**
    Load from and save to configuration files seamlessly.
@@ -49,12 +49,15 @@ Quick Example
 
    # Load environment variables from .env file
    load_env()
+
    # or load_env('.env')
    # or load_env('.json')
    # or load_env('.yaml')
+   # or load_env('.ini')
    # or load_env('config.env')
    # or load_env('/etc/config.env')
    # or load_env(r'c:\.env')
+   # or load_env(r'c:\traceback.ini')
 
    # Get values with automatic type detection
    debug = get_env('DEBUG')       # Returns: True (bool)

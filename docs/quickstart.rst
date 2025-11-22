@@ -33,9 +33,11 @@ The simplest way to load your environment variables:
    # or load_env('.env')
    # or load_env('.json')
    # or load_env('.yaml')
+   # or load_env('.ini')
    # or load_env('config.env')
    # or load_env('/etc/config.env')
    # or load_env(r'c:\.env')
+   # or load_env(r'c:\traceback.ini')
 
 Using the DotEnv Class
 ----------------------
