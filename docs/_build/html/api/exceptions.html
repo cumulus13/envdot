@@ -1,0 +1,707 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exceptions &mdash; envdot 1.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=f0c6c06e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=cb0f6c17"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=30646c52"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Contributing" href="../contributing.html" />
+    <link rel="prev" title="Helper Functions" href="helpers.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            envdot
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#requirements">Requirements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../installation.html#optional-dependencies">Optional Dependencies</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#installing-from-pypi">Installing from PyPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#installing-with-extras">Installing with Extras</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../installation.html#yaml-support">YAML Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../installation.html#all-extras">All Extras</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#installing-from-source">Installing from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#development-installation">Development Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#verifying-installation">Verifying Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#upgrading">Upgrading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#uninstalling">Uninstalling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#compatibility">Compatibility</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#creating-your-first-env-file">Creating Your First .env File</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#loading-environment-variables">Loading Environment Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#using-the-dotenv-class">Using the DotEnv Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#automatic-type-detection">Automatic Type Detection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#setting-values">Setting Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#attribute-access">Attribute Access</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#saving-changes">Saving Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#method-chaining">Method Chaining</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#default-values">Default Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#using-with-os-getenv">Using with os.getenv</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#next-steps">Next Steps</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../usage/basic.html">Basic Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../usage/basic.html#loading-environment-variables">Loading Environment Variables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../usage/basic.html#using-convenience-functions">Using Convenience Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../usage/basic.html#using-the-dotenv-class">Using the DotEnv Class</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/basic.html#getting-values">Getting Values</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../usage/basic.html#using-get-method">Using get() Method</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../usage/basic.html#using-convenience-function">Using Convenience Function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../usage/basic.html#dictionary-style-access">Dictionary-Style Access</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../usage/basic.html#attribute-access">Attribute Access</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/basic.html#setting-values">Setting Values</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../usage/basic.html#using-set-method">Using set() Method</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../usage/basic.html#id1">Using Convenience Function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../usage/basic.html#dictionary-style-assignment">Dictionary-Style Assignment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/basic.html#saving-variables">Saving Variables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../usage/basic.html#save-to-file">Save to File</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/basic.html#deleting-variables">Deleting Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/basic.html#clearing-variables">Clearing Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/basic.html#display-variables">Display Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/basic.html#method-chaining">Method Chaining</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/basic.html#os-environment-integration">OS Environment Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/basic.html#real-world-example">Real-World Example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/file-formats.html">File Formats</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../usage/file-formats.html#supported-formats">Supported Formats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/file-formats.html#env-format">.env Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/file-formats.html#json-format">JSON Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/file-formats.html#yaml-format">YAML Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/file-formats.html#ini-format">INI Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/file-formats.html#auto-detection">Auto-Detection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/file-formats.html#converting-between-formats">Converting Between Formats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/file-formats.html#format-comparison">Format Comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/file-formats.html#nested-structure-handling">Nested Structure Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/file-formats.html#list-handling">List Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/file-formats.html#best-practices">Best Practices</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/type-detection.html">Type Detection</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../usage/type-detection.html#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/type-detection.html#type-detection-rules">Type Detection Rules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../usage/type-detection.html#boolean-values">Boolean Values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../usage/type-detection.html#none-values">None Values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../usage/type-detection.html#integer-values">Integer Values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../usage/type-detection.html#float-values">Float Values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../usage/type-detection.html#string-values">String Values</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/type-detection.html#explicit-type-casting">Explicit Type Casting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../usage/type-detection.html#type-conversion-errors">Type Conversion Errors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/type-detection.html#using-helper-functions">Using Helper Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/type-detection.html#comparison-with-os-getenv">Comparison with os.getenv</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/type-detection.html#patching-os-module">Patching os Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/type-detection.html#typedetector-class">TypeDetector Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/type-detection.html#best-practices">Best Practices</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/advanced.html">Advanced Features</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../usage/advanced.html#load-options">Load Options</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../usage/advanced.html#override-behavior">Override Behavior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../usage/advanced.html#os-environment-sync">OS Environment Sync</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/advanced.html#multiple-configuration-files">Multiple Configuration Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/advanced.html#environment-based-loading">Environment-Based Loading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/advanced.html#custom-type-handlers">Custom Type Handlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/advanced.html#configuration-classes">Configuration Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/advanced.html#validation">Validation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../usage/advanced.html#value-validation">Value Validation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/advanced.html#context-managers">Context Managers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/advanced.html#lazy-loading">Lazy Loading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/advanced.html#watching-for-changes">Watching for Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/advanced.html#thread-safety">Thread Safety</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../usage/advanced.html#testing-with-envdot">Testing with envdot</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="dotenv.html">DotEnv Class</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="dotenv.html#class-reference">Class Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="dotenv.html#envdot.DotEnv"><code class="docutils literal notranslate"><span class="pre">DotEnv</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="dotenv.html#methods">Methods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="dotenv.html#load">load()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dotenv.html#envdot.DotEnv.load"><code class="docutils literal notranslate"><span class="pre">DotEnv.load()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="dotenv.html#get">get()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dotenv.html#envdot.DotEnv.get"><code class="docutils literal notranslate"><span class="pre">DotEnv.get()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="dotenv.html#set">set()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dotenv.html#envdot.DotEnv.set"><code class="docutils literal notranslate"><span class="pre">DotEnv.set()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="dotenv.html#save">save()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dotenv.html#envdot.DotEnv.save"><code class="docutils literal notranslate"><span class="pre">DotEnv.save()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="dotenv.html#delete">delete()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dotenv.html#envdot.DotEnv.delete"><code class="docutils literal notranslate"><span class="pre">DotEnv.delete()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="dotenv.html#all">all()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dotenv.html#envdot.DotEnv.all"><code class="docutils literal notranslate"><span class="pre">DotEnv.all()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="dotenv.html#keys">keys()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dotenv.html#envdot.DotEnv.keys"><code class="docutils literal notranslate"><span class="pre">DotEnv.keys()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="dotenv.html#clear">clear()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dotenv.html#envdot.DotEnv.clear"><code class="docutils literal notranslate"><span class="pre">DotEnv.clear()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="dotenv.html#show">show()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dotenv.html#envdot.DotEnv.show"><code class="docutils literal notranslate"><span class="pre">DotEnv.show()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="dotenv.html#magic-methods">Magic Methods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="dotenv.html#getitem">__getitem__</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dotenv.html#envdot.DotEnv.__getitem__"><code class="docutils literal notranslate"><span class="pre">DotEnv.__getitem__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="dotenv.html#setitem">__setitem__</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dotenv.html#envdot.DotEnv.__setitem__"><code class="docutils literal notranslate"><span class="pre">DotEnv.__setitem__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="dotenv.html#contains">__contains__</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dotenv.html#envdot.DotEnv.__contains__"><code class="docutils literal notranslate"><span class="pre">DotEnv.__contains__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="dotenv.html#getattr">__getattr__</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dotenv.html#envdot.DotEnv.__getattr__"><code class="docutils literal notranslate"><span class="pre">DotEnv.__getattr__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="dotenv.html#setattr">__setattr__</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dotenv.html#envdot.DotEnv.__setattr__"><code class="docutils literal notranslate"><span class="pre">DotEnv.__setattr__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="dotenv.html#repr">__repr__</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dotenv.html#envdot.DotEnv.__repr__"><code class="docutils literal notranslate"><span class="pre">DotEnv.__repr__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="functions.html">Convenience Functions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="functions.html#load-env">load_env()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="functions.html#envdot.load_env"><code class="docutils literal notranslate"><span class="pre">load_env()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="functions.html#get-env">get_env()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="functions.html#envdot.get_env"><code class="docutils literal notranslate"><span class="pre">get_env()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="functions.html#set-env">set_env()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="functions.html#envdot.set_env"><code class="docutils literal notranslate"><span class="pre">set_env()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="functions.html#save-env">save_env()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="functions.html#envdot.save_env"><code class="docutils literal notranslate"><span class="pre">save_env()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="functions.html#show">show()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="functions.html#envdot.show"><code class="docutils literal notranslate"><span class="pre">show()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="functions.html#combined-example">Combined Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="functions.html#comparison-functions-vs-class">Comparison: Functions vs Class</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="helpers.html">Helper Functions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="helpers.html#typed-getters">Typed Getters</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="helpers.html#getenv-typed">getenv_typed()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="helpers.html#envdot.getenv_typed"><code class="docutils literal notranslate"><span class="pre">getenv_typed()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="helpers.html#getenv-int">getenv_int()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="helpers.html#envdot.getenv_int"><code class="docutils literal notranslate"><span class="pre">getenv_int()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="helpers.html#getenv-bool">getenv_bool()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="helpers.html#envdot.getenv_bool"><code class="docutils literal notranslate"><span class="pre">getenv_bool()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="helpers.html#getenv-float">getenv_float()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="helpers.html#envdot.getenv_float"><code class="docutils literal notranslate"><span class="pre">getenv_float()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="helpers.html#getenv-str">getenv_str()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="helpers.html#envdot.getenv_str"><code class="docutils literal notranslate"><span class="pre">getenv_str()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="helpers.html#typed-setter">Typed Setter</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="helpers.html#setenv-typed">setenv_typed()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="helpers.html#envdot.setenv_typed"><code class="docutils literal notranslate"><span class="pre">setenv_typed()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="helpers.html#os-module-patching">OS Module Patching</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="helpers.html#patch-os-module">patch_os_module()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="helpers.html#envdot.patch_os_module"><code class="docutils literal notranslate"><span class="pre">patch_os_module()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="helpers.html#comparison-standard-vs-typed">Comparison: Standard vs Typed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="helpers.html#complete-example">Complete Example</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Exceptions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#exception-hierarchy">Exception Hierarchy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#base-exception">Base Exception</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#envdoterror">EnvDotError</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#envdot.exceptions.EnvDotError"><code class="docutils literal notranslate"><span class="pre">EnvDotError</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#file-exceptions">File Exceptions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#filenotfounderror">FileNotFoundError</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#envdot.exceptions.FileNotFoundError"><code class="docutils literal notranslate"><span class="pre">FileNotFoundError</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#parsing-exceptions">Parsing Exceptions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#parseerror">ParseError</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#envdot.exceptions.ParseError"><code class="docutils literal notranslate"><span class="pre">ParseError</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#type-exceptions">Type Exceptions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#typeconversionerror">TypeConversionError</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#envdot.exceptions.TypeConversionError"><code class="docutils literal notranslate"><span class="pre">TypeConversionError</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#error-handling-patterns">Error Handling Patterns</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#catching-specific-errors">Catching Specific Errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#catching-all-envdot-errors">Catching All envdot Errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#safe-value-retrieval">Safe Value Retrieval</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#validation-with-exceptions">Validation with Exceptions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#getting-started">Getting Started</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#fork-and-clone">Fork and Clone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#development-setup">Development Setup</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#development-workflow">Development Workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#creating-a-branch">Creating a Branch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#making-changes">Making Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#committing">Committing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#submitting-a-pull-request">Submitting a Pull Request</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#coding-standards">Coding Standards</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#code-style">Code Style</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#documentation">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#testing">Testing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#writing-tests">Writing Tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#running-tests">Running Tests</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#reporting-issues">Reporting Issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#bug-reports">Bug Reports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#feature-requests">Feature Requests</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#code-of-conduct">Code of Conduct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#getting-help">Getting Help</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id1">[1.0.14] - 2025</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#current-release">Current Release</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#initial-release">[1.0.0] - Initial Release</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#roadmap">Roadmap</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#planned-features">Planned Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#contributing">Contributing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#versioning">Versioning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#deprecation-policy">Deprecation Policy</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">envdot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Exceptions</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/exceptions.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="exceptions">
+<h1>Exceptions<a class="headerlink" href="#exceptions" title="Link to this heading"></a></h1>
+<p>envdot defines custom exceptions for clear error handling.</p>
+<section id="exception-hierarchy">
+<span id="module-envdot.exceptions"></span><h2>Exception Hierarchy<a class="headerlink" href="#exception-hierarchy" title="Link to this heading"></a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Exception
+└── EnvDotError (base class)
+    ├── FileNotFoundError
+    ├── ParseError
+    └── TypeConversionError
+</pre></div>
+</div>
+</section>
+<section id="base-exception">
+<h2>Base Exception<a class="headerlink" href="#base-exception" title="Link to this heading"></a></h2>
+<section id="envdoterror">
+<h3>EnvDotError<a class="headerlink" href="#envdoterror" title="Link to this heading"></a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="envdot.exceptions.EnvDotError">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">envdot.exceptions.</span></span><span class="sig-name descname"><span class="pre">EnvDotError</span></span><a class="headerlink" href="#envdot.exceptions.EnvDotError" title="Link to this definition"></a></dt>
+<dd><p>Base exception class for all envdot errors.</p>
+<p>All envdot exceptions inherit from this class, making it easy to catch
+any envdot-related error:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">envdot</span> <span class="kn">import</span> <span class="n">DotEnv</span>
+<span class="kn">from</span> <span class="nn">envdot.exceptions</span> <span class="kn">import</span> <span class="n">EnvDotError</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">env</span> <span class="o">=</span> <span class="n">DotEnv</span><span class="p">(</span><span class="s1">&#39;config.env&#39;</span><span class="p">)</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;KEY&#39;</span><span class="p">,</span> <span class="n">cast_type</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+<span class="k">except</span> <span class="n">EnvDotError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;envdot error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+</section>
+<section id="file-exceptions">
+<h2>File Exceptions<a class="headerlink" href="#file-exceptions" title="Link to this heading"></a></h2>
+<section id="filenotfounderror">
+<h3>FileNotFoundError<a class="headerlink" href="#filenotfounderror" title="Link to this heading"></a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="envdot.exceptions.FileNotFoundError">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">envdot.exceptions.</span></span><span class="sig-name descname"><span class="pre">FileNotFoundError</span></span><a class="reference internal" href="../_modules/envdot/exceptions.html#FileNotFoundError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#envdot.exceptions.FileNotFoundError" title="Link to this definition"></a></dt>
+<dd><p>Raised when a specified configuration file does not exist.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>Path</em>) – Path to the file that was not found</p>
+</dd>
+</dl>
+<p><strong>Example:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">envdot</span> <span class="kn">import</span> <span class="n">DotEnv</span>
+<span class="kn">from</span> <span class="nn">envdot.exceptions</span> <span class="kn">import</span> <span class="ne">FileNotFoundError</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">env</span> <span class="o">=</span> <span class="n">DotEnv</span><span class="p">(</span><span class="s1">&#39;nonexistent.env&#39;</span><span class="p">,</span> <span class="n">auto_load</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">env</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+<span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Configuration file not found: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="c1"># Use defaults or create file</span>
+</pre></div>
+</div>
+<p><strong>Attributes:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">filepath</span></code>: The path that was not found</p></li>
+</ul>
+</dd></dl>
+
+</section>
+</section>
+<section id="parsing-exceptions">
+<h2>Parsing Exceptions<a class="headerlink" href="#parsing-exceptions" title="Link to this heading"></a></h2>
+<section id="parseerror">
+<h3>ParseError<a class="headerlink" href="#parseerror" title="Link to this heading"></a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="envdot.exceptions.ParseError">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">envdot.exceptions.</span></span><span class="sig-name descname"><span class="pre">ParseError</span></span><a class="reference internal" href="../_modules/envdot/exceptions.html#ParseError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#envdot.exceptions.ParseError" title="Link to this definition"></a></dt>
+<dd><p>Raised when a configuration file cannot be parsed.</p>
+<p>This can occur when:</p>
+<ul class="simple">
+<li><p>The file format doesn’t match the extension</p></li>
+<li><p>The file contains invalid syntax</p></li>
+<li><p>Required dependencies are missing (e.g., PyYAML for .yaml files)</p></li>
+</ul>
+<p><strong>Example:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">envdot</span> <span class="kn">import</span> <span class="n">DotEnv</span>
+<span class="kn">from</span> <span class="nn">envdot.exceptions</span> <span class="kn">import</span> <span class="n">ParseError</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">env</span> <span class="o">=</span> <span class="n">DotEnv</span><span class="p">(</span><span class="s1">&#39;config.json&#39;</span><span class="p">)</span>
+    <span class="n">env</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+<span class="k">except</span> <span class="n">ParseError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to parse configuration: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Common causes:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Invalid JSON</span>
+<span class="c1"># config.json contains: { invalid json }</span>
+
+<span class="c1"># Invalid YAML syntax</span>
+<span class="c1"># config.yaml contains improper indentation</span>
+
+<span class="c1"># Missing YAML dependency</span>
+<span class="c1"># Trying to load .yaml without PyYAML installed</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+</section>
+<section id="type-exceptions">
+<h2>Type Exceptions<a class="headerlink" href="#type-exceptions" title="Link to this heading"></a></h2>
+<section id="typeconversionerror">
+<h3>TypeConversionError<a class="headerlink" href="#typeconversionerror" title="Link to this heading"></a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="envdot.exceptions.TypeConversionError">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">envdot.exceptions.</span></span><span class="sig-name descname"><span class="pre">TypeConversionError</span></span><a class="reference internal" href="../_modules/envdot/exceptions.html#TypeConversionError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#envdot.exceptions.TypeConversionError" title="Link to this definition"></a></dt>
+<dd><p>Raised when a value cannot be converted to the requested type.</p>
+<p>This occurs when using <code class="docutils literal notranslate"><span class="pre">cast_type</span></code> parameter and the conversion fails.</p>
+<p><strong>Example:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">envdot</span> <span class="kn">import</span> <span class="n">DotEnv</span>
+<span class="kn">from</span> <span class="nn">envdot.exceptions</span> <span class="kn">import</span> <span class="n">TypeConversionError</span>
+
+<span class="n">env</span> <span class="o">=</span> <span class="n">DotEnv</span><span class="p">(</span><span class="s1">&#39;.env&#39;</span><span class="p">)</span>
+<span class="c1"># Assuming APP_NAME=MyApplication (a string)</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;APP_NAME&#39;</span><span class="p">,</span> <span class="n">cast_type</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+<span class="k">except</span> <span class="n">TypeConversionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Type conversion failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="c1"># Handle the error - maybe use default value</span>
+</pre></div>
+</div>
+<p><strong>Attributes:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">key</span></code>: The variable name</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">value</span></code>: The original value</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">target_type</span></code>: The type conversion was attempted to</p></li>
+</ul>
+</dd></dl>
+
+</section>
+</section>
+<section id="error-handling-patterns">
+<h2>Error Handling Patterns<a class="headerlink" href="#error-handling-patterns" title="Link to this heading"></a></h2>
+<section id="catching-specific-errors">
+<h3>Catching Specific Errors<a class="headerlink" href="#catching-specific-errors" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">envdot</span> <span class="kn">import</span> <span class="n">DotEnv</span>
+<span class="kn">from</span> <span class="nn">envdot.exceptions</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="ne">FileNotFoundError</span><span class="p">,</span>
+    <span class="n">ParseError</span><span class="p">,</span>
+    <span class="n">TypeConversionError</span>
+<span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">load_config</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">env</span> <span class="o">=</span> <span class="n">DotEnv</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">auto_load</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">env</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">env</span>
+    <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Warning: </span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2"> not found, using defaults&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">DotEnv</span><span class="p">(</span><span class="n">auto_load</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">ParseError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error parsing </span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span>
+</pre></div>
+</div>
+</section>
+<section id="catching-all-envdot-errors">
+<h3>Catching All envdot Errors<a class="headerlink" href="#catching-all-envdot-errors" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">envdot</span> <span class="kn">import</span> <span class="n">DotEnv</span>
+<span class="kn">from</span> <span class="nn">envdot.exceptions</span> <span class="kn">import</span> <span class="n">EnvDotError</span>
+
+<span class="k">def</span> <span class="nf">safe_load_config</span><span class="p">():</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">env</span> <span class="o">=</span> <span class="n">DotEnv</span><span class="p">(</span><span class="s1">&#39;.env&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">env</span>
+    <span class="k">except</span> <span class="n">EnvDotError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Configuration error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># Return empty config or defaults</span>
+        <span class="k">return</span> <span class="n">DotEnv</span><span class="p">(</span><span class="n">auto_load</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="safe-value-retrieval">
+<h3>Safe Value Retrieval<a class="headerlink" href="#safe-value-retrieval" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">envdot</span> <span class="kn">import</span> <span class="n">DotEnv</span>
+<span class="kn">from</span> <span class="nn">envdot.exceptions</span> <span class="kn">import</span> <span class="n">TypeConversionError</span>
+
+<span class="k">def</span> <span class="nf">get_port</span><span class="p">(</span><span class="n">env</span><span class="p">:</span> <span class="n">DotEnv</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PORT&#39;</span><span class="p">,</span> <span class="n">cast_type</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">TypeConversionError</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Warning: Invalid PORT value, using default 8000&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">8000</span>
+
+<span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="n">env</span><span class="p">:</span> <span class="n">DotEnv</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;port&#39;</span><span class="p">:</span> <span class="n">get_port</span><span class="p">(</span><span class="n">env</span><span class="p">),</span>
+        <span class="s1">&#39;debug&#39;</span><span class="p">:</span> <span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;DEBUG&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;APP_NAME&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;App&#39;</span><span class="p">),</span>
+    <span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="validation-with-exceptions">
+<h3>Validation with Exceptions<a class="headerlink" href="#validation-with-exceptions" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">envdot</span> <span class="kn">import</span> <span class="n">DotEnv</span>
+<span class="kn">from</span> <span class="nn">envdot.exceptions</span> <span class="kn">import</span> <span class="n">EnvDotError</span>
+
+<span class="k">class</span> <span class="nc">ConfigurationError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Application-specific configuration error.&quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+<span class="k">def</span> <span class="nf">validate_config</span><span class="p">(</span><span class="n">env</span><span class="p">:</span> <span class="n">DotEnv</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate required configuration.&quot;&quot;&quot;</span>
+    <span class="n">required</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;DATABASE_URL&#39;</span><span class="p">,</span> <span class="s1">&#39;SECRET_KEY&#39;</span><span class="p">,</span> <span class="s1">&#39;API_KEY&#39;</span><span class="p">]</span>
+    <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">required</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">env</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ConfigurationError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Missing required configuration: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Validate value constraints</span>
+    <span class="n">port</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PORT&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">8000</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">port</span> <span class="o">&lt;=</span> <span class="mi">65535</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">ConfigurationError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;PORT must be between 1 and 65535, got </span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+<span class="c1"># Usage</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">env</span> <span class="o">=</span> <span class="n">DotEnv</span><span class="p">(</span><span class="s1">&#39;.env&#39;</span><span class="p">)</span>
+    <span class="n">validate_config</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+<span class="k">except</span> <span class="p">(</span><span class="n">EnvDotError</span><span class="p">,</span> <span class="n">ConfigurationError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Configuration error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="helpers.html" class="btn btn-neutral float-left" title="Helper Functions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../contributing.html" class="btn btn-neutral float-right" title="Contributing" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Hadi Cahyadi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

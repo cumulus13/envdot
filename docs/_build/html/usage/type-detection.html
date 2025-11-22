@@ -1,0 +1,728 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Type Detection &mdash; envdot 1.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=f0c6c06e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=cb0f6c17"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=30646c52"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Advanced Features" href="advanced.html" />
+    <link rel="prev" title="File Formats" href="file-formats.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            envdot
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#requirements">Requirements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../installation.html#optional-dependencies">Optional Dependencies</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#installing-from-pypi">Installing from PyPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#installing-with-extras">Installing with Extras</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../installation.html#yaml-support">YAML Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../installation.html#all-extras">All Extras</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#installing-from-source">Installing from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#development-installation">Development Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#verifying-installation">Verifying Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#upgrading">Upgrading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#uninstalling">Uninstalling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#compatibility">Compatibility</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#creating-your-first-env-file">Creating Your First .env File</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#loading-environment-variables">Loading Environment Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#using-the-dotenv-class">Using the DotEnv Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#automatic-type-detection">Automatic Type Detection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#setting-values">Setting Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#attribute-access">Attribute Access</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#saving-changes">Saving Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#method-chaining">Method Chaining</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#default-values">Default Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#using-with-os-getenv">Using with os.getenv</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#next-steps">Next Steps</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="basic.html">Basic Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="basic.html#loading-environment-variables">Loading Environment Variables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="basic.html#using-convenience-functions">Using Convenience Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="basic.html#using-the-dotenv-class">Using the DotEnv Class</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="basic.html#getting-values">Getting Values</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="basic.html#using-get-method">Using get() Method</a></li>
+<li class="toctree-l3"><a class="reference internal" href="basic.html#using-convenience-function">Using Convenience Function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="basic.html#dictionary-style-access">Dictionary-Style Access</a></li>
+<li class="toctree-l3"><a class="reference internal" href="basic.html#attribute-access">Attribute Access</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="basic.html#setting-values">Setting Values</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="basic.html#using-set-method">Using set() Method</a></li>
+<li class="toctree-l3"><a class="reference internal" href="basic.html#id1">Using Convenience Function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="basic.html#dictionary-style-assignment">Dictionary-Style Assignment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="basic.html#saving-variables">Saving Variables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="basic.html#save-to-file">Save to File</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="basic.html#deleting-variables">Deleting Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="basic.html#clearing-variables">Clearing Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="basic.html#display-variables">Display Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="basic.html#method-chaining">Method Chaining</a></li>
+<li class="toctree-l2"><a class="reference internal" href="basic.html#os-environment-integration">OS Environment Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="basic.html#real-world-example">Real-World Example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="file-formats.html">File Formats</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="file-formats.html#supported-formats">Supported Formats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="file-formats.html#env-format">.env Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="file-formats.html#json-format">JSON Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="file-formats.html#yaml-format">YAML Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="file-formats.html#ini-format">INI Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="file-formats.html#auto-detection">Auto-Detection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="file-formats.html#converting-between-formats">Converting Between Formats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="file-formats.html#format-comparison">Format Comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="file-formats.html#nested-structure-handling">Nested Structure Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="file-formats.html#list-handling">List Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="file-formats.html#best-practices">Best Practices</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Type Detection</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#type-detection-rules">Type Detection Rules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#boolean-values">Boolean Values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#none-values">None Values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#integer-values">Integer Values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#float-values">Float Values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#string-values">String Values</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#explicit-type-casting">Explicit Type Casting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#list-values">List Values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tuple-values">Tuple Values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#type-conversion-errors">Type Conversion Errors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#using-helper-functions">Using Helper Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#comparison-with-os-getenv">Comparison with os.getenv</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#patching-os-module">Patching os Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#typedetector-class">TypeDetector Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#best-practices">Best Practices</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Features</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="advanced.html#load-options">Load Options</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="advanced.html#override-behavior">Override Behavior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced.html#os-environment-sync">OS Environment Sync</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="advanced.html#multiple-configuration-files">Multiple Configuration Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced.html#environment-based-loading">Environment-Based Loading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced.html#custom-type-handlers">Custom Type Handlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced.html#configuration-classes">Configuration Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced.html#validation">Validation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="advanced.html#value-validation">Value Validation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="advanced.html#context-managers">Context Managers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced.html#lazy-loading">Lazy Loading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced.html#watching-for-changes">Watching for Changes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced.html#thread-safety">Thread Safety</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced.html#testing-with-envdot">Testing with envdot</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api/dotenv.html">DotEnv Class</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/dotenv.html#class-reference">Class Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/dotenv.html#envdot.DotEnv"><code class="docutils literal notranslate"><span class="pre">DotEnv</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api/dotenv.html#methods">Methods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/dotenv.html#load">load()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/dotenv.html#envdot.DotEnv.load"><code class="docutils literal notranslate"><span class="pre">DotEnv.load()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/dotenv.html#get">get()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/dotenv.html#envdot.DotEnv.get"><code class="docutils literal notranslate"><span class="pre">DotEnv.get()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/dotenv.html#set">set()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/dotenv.html#envdot.DotEnv.set"><code class="docutils literal notranslate"><span class="pre">DotEnv.set()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/dotenv.html#save">save()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/dotenv.html#envdot.DotEnv.save"><code class="docutils literal notranslate"><span class="pre">DotEnv.save()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/dotenv.html#delete">delete()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/dotenv.html#envdot.DotEnv.delete"><code class="docutils literal notranslate"><span class="pre">DotEnv.delete()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/dotenv.html#all">all()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/dotenv.html#envdot.DotEnv.all"><code class="docutils literal notranslate"><span class="pre">DotEnv.all()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/dotenv.html#keys">keys()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/dotenv.html#envdot.DotEnv.keys"><code class="docutils literal notranslate"><span class="pre">DotEnv.keys()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/dotenv.html#clear">clear()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/dotenv.html#envdot.DotEnv.clear"><code class="docutils literal notranslate"><span class="pre">DotEnv.clear()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/dotenv.html#show">show()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/dotenv.html#envdot.DotEnv.show"><code class="docutils literal notranslate"><span class="pre">DotEnv.show()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api/dotenv.html#magic-methods">Magic Methods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/dotenv.html#getitem">__getitem__</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/dotenv.html#envdot.DotEnv.__getitem__"><code class="docutils literal notranslate"><span class="pre">DotEnv.__getitem__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/dotenv.html#setitem">__setitem__</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/dotenv.html#envdot.DotEnv.__setitem__"><code class="docutils literal notranslate"><span class="pre">DotEnv.__setitem__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/dotenv.html#contains">__contains__</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/dotenv.html#envdot.DotEnv.__contains__"><code class="docutils literal notranslate"><span class="pre">DotEnv.__contains__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/dotenv.html#getattr">__getattr__</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/dotenv.html#envdot.DotEnv.__getattr__"><code class="docutils literal notranslate"><span class="pre">DotEnv.__getattr__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/dotenv.html#setattr">__setattr__</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/dotenv.html#envdot.DotEnv.__setattr__"><code class="docutils literal notranslate"><span class="pre">DotEnv.__setattr__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/dotenv.html#repr">__repr__</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/dotenv.html#envdot.DotEnv.__repr__"><code class="docutils literal notranslate"><span class="pre">DotEnv.__repr__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api/functions.html">Convenience Functions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/functions.html#load-env">load_env()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/functions.html#envdot.load_env"><code class="docutils literal notranslate"><span class="pre">load_env()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api/functions.html#get-env">get_env()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/functions.html#envdot.get_env"><code class="docutils literal notranslate"><span class="pre">get_env()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api/functions.html#set-env">set_env()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/functions.html#envdot.set_env"><code class="docutils literal notranslate"><span class="pre">set_env()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api/functions.html#save-env">save_env()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/functions.html#envdot.save_env"><code class="docutils literal notranslate"><span class="pre">save_env()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api/functions.html#show">show()</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/functions.html#envdot.show"><code class="docutils literal notranslate"><span class="pre">show()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api/functions.html#combined-example">Combined Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/functions.html#comparison-functions-vs-class">Comparison: Functions vs Class</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api/helpers.html">Helper Functions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/helpers.html#typed-getters">Typed Getters</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/helpers.html#getenv-typed">getenv_typed()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/helpers.html#envdot.getenv_typed"><code class="docutils literal notranslate"><span class="pre">getenv_typed()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/helpers.html#getenv-int">getenv_int()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/helpers.html#envdot.getenv_int"><code class="docutils literal notranslate"><span class="pre">getenv_int()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/helpers.html#getenv-bool">getenv_bool()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/helpers.html#envdot.getenv_bool"><code class="docutils literal notranslate"><span class="pre">getenv_bool()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/helpers.html#getenv-float">getenv_float()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/helpers.html#envdot.getenv_float"><code class="docutils literal notranslate"><span class="pre">getenv_float()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/helpers.html#getenv-str">getenv_str()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/helpers.html#envdot.getenv_str"><code class="docutils literal notranslate"><span class="pre">getenv_str()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api/helpers.html#typed-setter">Typed Setter</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/helpers.html#setenv-typed">setenv_typed()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/helpers.html#envdot.setenv_typed"><code class="docutils literal notranslate"><span class="pre">setenv_typed()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api/helpers.html#os-module-patching">OS Module Patching</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/helpers.html#patch-os-module">patch_os_module()</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/helpers.html#envdot.patch_os_module"><code class="docutils literal notranslate"><span class="pre">patch_os_module()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api/helpers.html#comparison-standard-vs-typed">Comparison: Standard vs Typed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/helpers.html#complete-example">Complete Example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api/exceptions.html">Exceptions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/exceptions.html#exception-hierarchy">Exception Hierarchy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/exceptions.html#base-exception">Base Exception</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/exceptions.html#envdoterror">EnvDotError</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/exceptions.html#envdot.exceptions.EnvDotError"><code class="docutils literal notranslate"><span class="pre">EnvDotError</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api/exceptions.html#file-exceptions">File Exceptions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/exceptions.html#filenotfounderror">FileNotFoundError</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/exceptions.html#envdot.exceptions.FileNotFoundError"><code class="docutils literal notranslate"><span class="pre">FileNotFoundError</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api/exceptions.html#parsing-exceptions">Parsing Exceptions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/exceptions.html#parseerror">ParseError</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/exceptions.html#envdot.exceptions.ParseError"><code class="docutils literal notranslate"><span class="pre">ParseError</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api/exceptions.html#type-exceptions">Type Exceptions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/exceptions.html#typeconversionerror">TypeConversionError</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/exceptions.html#envdot.exceptions.TypeConversionError"><code class="docutils literal notranslate"><span class="pre">TypeConversionError</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api/exceptions.html#error-handling-patterns">Error Handling Patterns</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/exceptions.html#catching-specific-errors">Catching Specific Errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/exceptions.html#catching-all-envdot-errors">Catching All envdot Errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/exceptions.html#safe-value-retrieval">Safe Value Retrieval</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/exceptions.html#validation-with-exceptions">Validation with Exceptions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#getting-started">Getting Started</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#fork-and-clone">Fork and Clone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#development-setup">Development Setup</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#development-workflow">Development Workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#creating-a-branch">Creating a Branch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#making-changes">Making Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#committing">Committing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#submitting-a-pull-request">Submitting a Pull Request</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#coding-standards">Coding Standards</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#code-style">Code Style</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#documentation">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#testing">Testing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#writing-tests">Writing Tests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#running-tests">Running Tests</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#reporting-issues">Reporting Issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#bug-reports">Bug Reports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../contributing.html#feature-requests">Feature Requests</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#code-of-conduct">Code of Conduct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../contributing.html#getting-help">Getting Help</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#id1">[1.0.14] - 2025</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#current-release">Current Release</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#initial-release">[1.0.0] - Initial Release</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#roadmap">Roadmap</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#planned-features">Planned Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../changelog.html#contributing">Contributing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#versioning">Versioning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../changelog.html#deprecation-policy">Deprecation Policy</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">envdot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Type Detection</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/usage/type-detection.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="type-detection">
+<h1>Type Detection<a class="headerlink" href="#type-detection" title="Link to this heading"></a></h1>
+<p>One of envdot’s key features is automatic type detection. Instead of returning
+everything as strings like <code class="docutils literal notranslate"><span class="pre">os.getenv()</span></code>, envdot intelligently converts values
+to their appropriate Python types.</p>
+<section id="how-it-works">
+<h2>How It Works<a class="headerlink" href="#how-it-works" title="Link to this heading"></a></h2>
+<p>When loading environment variables, envdot analyzes each value and converts it
+to the most appropriate Python type:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">envdot</span> <span class="kn">import</span> <span class="n">DotEnv</span>
+
+<span class="c1"># Given this .env file:</span>
+<span class="c1"># DEBUG=true</span>
+<span class="c1"># PORT=8080</span>
+<span class="c1"># TIMEOUT=30.5</span>
+<span class="c1"># APP_NAME=MyApp</span>
+<span class="c1"># EMPTY_VALUE=</span>
+
+<span class="n">env</span> <span class="o">=</span> <span class="n">DotEnv</span><span class="p">(</span><span class="s1">&#39;.env&#39;</span><span class="p">)</span>
+
+<span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;DEBUG&#39;</span><span class="p">)</span>       <span class="c1"># Returns: True (bool)</span>
+<span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PORT&#39;</span><span class="p">)</span>        <span class="c1"># Returns: 8080 (int)</span>
+<span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;TIMEOUT&#39;</span><span class="p">)</span>     <span class="c1"># Returns: 30.5 (float)</span>
+<span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;APP_NAME&#39;</span><span class="p">)</span>    <span class="c1"># Returns: &#39;MyApp&#39; (str)</span>
+<span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;EMPTY_VALUE&#39;</span><span class="p">)</span> <span class="c1"># Returns: None</span>
+</pre></div>
+</div>
+</section>
+<section id="type-detection-rules">
+<h2>Type Detection Rules<a class="headerlink" href="#type-detection-rules" title="Link to this heading"></a></h2>
+<p>envdot uses the following rules for automatic type detection:</p>
+<section id="boolean-values">
+<h3>Boolean Values<a class="headerlink" href="#boolean-values" title="Link to this heading"></a></h3>
+<p>The following strings are converted to <code class="docutils literal notranslate"><span class="pre">True</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">true</span></code> (case-insensitive)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">yes</span></code> (case-insensitive)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">on</span></code> (case-insensitive)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></li>
+</ul>
+<p>The following strings are converted to <code class="docutils literal notranslate"><span class="pre">False</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">false</span></code> (case-insensitive)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">no</span></code> (case-insensitive)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">off</span></code> (case-insensitive)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># All of these become True</span>
+<span class="n">DEBUG</span><span class="o">=</span><span class="n">true</span>
+<span class="n">DEBUG</span><span class="o">=</span><span class="kc">True</span>
+<span class="n">DEBUG</span><span class="o">=</span><span class="n">TRUE</span>
+<span class="n">DEBUG</span><span class="o">=</span><span class="n">yes</span>
+<span class="n">DEBUG</span><span class="o">=</span><span class="n">on</span>
+<span class="n">DEBUG</span><span class="o">=</span><span class="mi">1</span>
+
+<span class="c1"># All of these become False</span>
+<span class="n">DEBUG</span><span class="o">=</span><span class="n">false</span>
+<span class="n">DEBUG</span><span class="o">=</span><span class="kc">False</span>
+<span class="n">DEBUG</span><span class="o">=</span><span class="n">no</span>
+<span class="n">DEBUG</span><span class="o">=</span><span class="n">off</span>
+<span class="n">DEBUG</span><span class="o">=</span><span class="mi">0</span>
+</pre></div>
+</div>
+</section>
+<section id="none-values">
+<h3>None Values<a class="headerlink" href="#none-values" title="Link to this heading"></a></h3>
+<p>The following are converted to <code class="docutils literal notranslate"><span class="pre">None</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">none</span></code> (case-insensitive)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">null</span></code> (case-insensitive)</p></li>
+<li><p>Empty string</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">EMPTY_VAR</span><span class="o">=</span>
+<span class="n">NULL_VAR</span><span class="o">=</span><span class="n">null</span>
+<span class="n">NONE_VAR</span><span class="o">=</span><span class="n">none</span>
+</pre></div>
+</div>
+</section>
+<section id="integer-values">
+<h3>Integer Values<a class="headerlink" href="#integer-values" title="Link to this heading"></a></h3>
+<p>Strings containing only digits (with optional leading minus sign) are converted
+to integers:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">PORT</span><span class="o">=</span><span class="mi">8080</span>        <span class="c1"># 8080 (int)</span>
+<span class="n">MAX_CONN</span><span class="o">=</span><span class="mi">100</span>     <span class="c1"># 100 (int)</span>
+<span class="n">OFFSET</span><span class="o">=-</span><span class="mi">10</span>       <span class="c1"># -10 (int)</span>
+<span class="n">ZERO</span><span class="o">=</span><span class="mi">0</span>           <span class="c1"># Note: &quot;0&quot; becomes False (bool), not 0 (int)</span>
+</pre></div>
+</div>
+</section>
+<section id="float-values">
+<h3>Float Values<a class="headerlink" href="#float-values" title="Link to this heading"></a></h3>
+<p>Strings containing digits with a decimal point are converted to floats:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">TIMEOUT</span><span class="o">=</span><span class="mf">30.5</span>     <span class="c1"># 30.5 (float)</span>
+<span class="n">RATE</span><span class="o">=</span><span class="mf">0.15</span>        <span class="c1"># 0.15 (float)</span>
+<span class="n">TEMP</span><span class="o">=-</span><span class="mf">3.14</span>       <span class="c1"># -3.14 (float)</span>
+</pre></div>
+</div>
+</section>
+<section id="string-values">
+<h3>String Values<a class="headerlink" href="#string-values" title="Link to this heading"></a></h3>
+<p>Everything that doesn’t match the above patterns remains as a string:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">APP_NAME</span><span class="o">=</span><span class="n">MyApp</span>              <span class="c1"># &#39;MyApp&#39; (str)</span>
+<span class="n">URL</span><span class="o">=</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">example</span><span class="o">.</span><span class="n">com</span>     <span class="c1"># &#39;https://example.com&#39; (str)</span>
+<span class="n">VERSION</span><span class="o">=</span><span class="mf">1.0.0</span>               <span class="c1"># &#39;1.0.0&#39; (str) - not a valid float</span>
+<span class="n">MIXED</span><span class="o">=</span><span class="n">abc123</span>                <span class="c1"># &#39;abc123&#39; (str)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="explicit-type-casting">
+<h2>Explicit Type Casting<a class="headerlink" href="#explicit-type-casting" title="Link to this heading"></a></h2>
+<p>You can override automatic detection with explicit type casting:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">env</span> <span class="o">=</span> <span class="n">DotEnv</span><span class="p">(</span><span class="s1">&#39;.env&#39;</span><span class="p">)</span>
+
+<span class="c1"># Force string type (even for numbers)</span>
+<span class="n">version</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PORT&#39;</span><span class="p">,</span> <span class="n">cast_type</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>  <span class="c1"># &#39;8080&#39; (str)</span>
+
+<span class="c1"># Force integer type</span>
+<span class="n">count</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;COUNT&#39;</span><span class="p">,</span> <span class="n">cast_type</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+<span class="c1"># Force boolean type</span>
+<span class="n">enabled</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ENABLED&#39;</span><span class="p">,</span> <span class="n">cast_type</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+<span class="c1"># Force float type</span>
+<span class="n">rate</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;RATE&#39;</span><span class="p">,</span> <span class="n">cast_type</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</pre></div>
+</div>
+<section id="list-values">
+<h3>List Values<a class="headerlink" href="#list-values" title="Link to this heading"></a></h3>
+<p>Anything that matches the above pattern will remain a string unless a specific <cite>cast_type</cite> is specified:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ALLOWED_HOST</span><span class="o">=*</span><span class="p">,</span><span class="mf">127.0.0.1</span> <span class="mf">192.168.10.2</span><span class="p">,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span>  <span class="c1"># (str)</span>
+<span class="c1"># example:</span>
+<span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;ALLOWED_HOST&#39;</span><span class="p">,</span> <span class="n">cast_type</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+<span class="c1"># [*,127.0.0.1,192.168.10.2,example.com]  # (list)</span>
+</pre></div>
+</div>
+</section>
+<section id="tuple-values">
+<h3>Tuple Values<a class="headerlink" href="#tuple-values" title="Link to this heading"></a></h3>
+<p>Anything that matches the above pattern will remain a string unless a specific <cite>cast_type</cite> is specified:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ALLOWED_HOST</span><span class="o">=*</span><span class="p">,</span><span class="mf">127.0.0.1</span> <span class="mf">192.168.10.2</span><span class="p">,</span><span class="n">example</span><span class="o">.</span><span class="n">com</span>  <span class="c1"># (str)</span>
+<span class="c1"># example:</span>
+<span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;ALLOWED_HOST&#39;</span><span class="p">,</span> <span class="n">cast_type</span><span class="o">=</span><span class="nb">tuple</span><span class="p">)</span>
+<span class="c1"># (*,127.0.0.1,192.168.10.2,example.com)  # (tuple)</span>
+</pre></div>
+</div>
+</section>
+<section id="type-conversion-errors">
+<h3>Type Conversion Errors<a class="headerlink" href="#type-conversion-errors" title="Link to this heading"></a></h3>
+<p>If explicit casting fails, a <code class="docutils literal notranslate"><span class="pre">TypeConversionError</span></code> is raised:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">envdot</span> <span class="kn">import</span> <span class="n">DotEnv</span>
+<span class="kn">from</span> <span class="nn">envdot.exceptions</span> <span class="kn">import</span> <span class="n">TypeConversionError</span>
+
+<span class="n">env</span> <span class="o">=</span> <span class="n">DotEnv</span><span class="p">(</span><span class="s1">&#39;.env&#39;</span><span class="p">)</span>
+<span class="c1"># APP_NAME=MyApplication</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;APP_NAME&#39;</span><span class="p">,</span> <span class="n">cast_type</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+<span class="k">except</span> <span class="n">TypeConversionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot convert: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="using-helper-functions">
+<h2>Using Helper Functions<a class="headerlink" href="#using-helper-functions" title="Link to this heading"></a></h2>
+<p>envdot provides type-specific helper functions:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">envdot</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">getenv_typed</span><span class="p">,</span>
+    <span class="n">getenv_int</span><span class="p">,</span>
+    <span class="n">getenv_bool</span><span class="p">,</span>
+    <span class="n">getenv_float</span><span class="p">,</span>
+    <span class="n">getenv_str</span>
+<span class="p">)</span>
+
+<span class="c1"># Auto-detect type</span>
+<span class="n">port</span> <span class="o">=</span> <span class="n">getenv_typed</span><span class="p">(</span><span class="s1">&#39;PORT&#39;</span><span class="p">)</span>  <span class="c1"># Returns appropriate type</span>
+
+<span class="c1"># Specific type getters</span>
+<span class="n">port</span> <span class="o">=</span> <span class="n">getenv_int</span><span class="p">(</span><span class="s1">&#39;PORT&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">8000</span><span class="p">)</span>
+<span class="n">debug</span> <span class="o">=</span> <span class="n">getenv_bool</span><span class="p">(</span><span class="s1">&#39;DEBUG&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">timeout</span> <span class="o">=</span> <span class="n">getenv_float</span><span class="p">(</span><span class="s1">&#39;TIMEOUT&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">30.0</span><span class="p">)</span>
+<span class="n">name</span> <span class="o">=</span> <span class="n">getenv_str</span><span class="p">(</span><span class="s1">&#39;APP_NAME&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;MyApp&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="comparison-with-os-getenv">
+<h2>Comparison with os.getenv<a class="headerlink" href="#comparison-with-os-getenv" title="Link to this heading"></a></h2>
+<p>Standard <code class="docutils literal notranslate"><span class="pre">os.getenv()</span></code> always returns strings:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PORT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;8080&#39;</span>
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;DEBUG&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;true&#39;</span>
+
+<span class="c1"># Standard behavior - always strings</span>
+<span class="n">port</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;PORT&#39;</span><span class="p">)</span>     <span class="c1"># &#39;8080&#39; (str)</span>
+<span class="n">debug</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;DEBUG&#39;</span><span class="p">)</span>   <span class="c1"># &#39;true&#39; (str)</span>
+
+<span class="c1"># Manual conversion needed</span>
+<span class="n">port</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;PORT&#39;</span><span class="p">))</span>
+<span class="n">debug</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;DEBUG&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;true&#39;</span>
+</pre></div>
+</div>
+<p>With envdot, this becomes much cleaner:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">envdot</span> <span class="kn">import</span> <span class="n">load_env</span><span class="p">,</span> <span class="n">get_env</span>
+
+<span class="n">load_env</span><span class="p">()</span>
+
+<span class="c1"># Automatic type detection</span>
+<span class="n">port</span> <span class="o">=</span> <span class="n">get_env</span><span class="p">(</span><span class="s1">&#39;PORT&#39;</span><span class="p">)</span>   <span class="c1"># 8080 (int)</span>
+<span class="n">debug</span> <span class="o">=</span> <span class="n">get_env</span><span class="p">(</span><span class="s1">&#39;DEBUG&#39;</span><span class="p">)</span> <span class="c1"># True (bool)</span>
+</pre></div>
+</div>
+</section>
+<section id="patching-os-module">
+<h2>Patching os Module<a class="headerlink" href="#patching-os-module" title="Link to this heading"></a></h2>
+<p>For seamless integration, you can patch the <code class="docutils literal notranslate"><span class="pre">os</span></code> module:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">envdot</span> <span class="kn">import</span> <span class="n">patch_os_module</span>
+
+<span class="n">patch_os_module</span><span class="p">()</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="c1"># Now os has typed getters</span>
+<span class="n">port</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv_typed</span><span class="p">(</span><span class="s1">&#39;PORT&#39;</span><span class="p">)</span>
+<span class="n">debug</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv_bool</span><span class="p">(</span><span class="s1">&#39;DEBUG&#39;</span><span class="p">)</span>
+<span class="n">timeout</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv_float</span><span class="p">(</span><span class="s1">&#39;TIMEOUT&#39;</span><span class="p">)</span>
+
+<span class="c1"># Set with type preservation</span>
+<span class="n">os</span><span class="o">.</span><span class="n">setenv_typed</span><span class="p">(</span><span class="s1">&#39;NEW_PORT&#39;</span><span class="p">,</span> <span class="mi">9000</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="typedetector-class">
+<h2>TypeDetector Class<a class="headerlink" href="#typedetector-class" title="Link to this heading"></a></h2>
+<p>For advanced use cases, you can use the <code class="docutils literal notranslate"><span class="pre">TypeDetector</span></code> class directly:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">envdot.core</span> <span class="kn">import</span> <span class="n">TypeDetector</span>
+
+<span class="c1"># Detect and convert value</span>
+<span class="n">value</span> <span class="o">=</span> <span class="n">TypeDetector</span><span class="o">.</span><span class="n">auto_detect</span><span class="p">(</span><span class="s1">&#39;true&#39;</span><span class="p">)</span>    <span class="c1"># True (bool)</span>
+<span class="n">value</span> <span class="o">=</span> <span class="n">TypeDetector</span><span class="o">.</span><span class="n">auto_detect</span><span class="p">(</span><span class="s1">&#39;8080&#39;</span><span class="p">)</span>    <span class="c1"># 8080 (int)</span>
+<span class="n">value</span> <span class="o">=</span> <span class="n">TypeDetector</span><span class="o">.</span><span class="n">auto_detect</span><span class="p">(</span><span class="s1">&#39;30.5&#39;</span><span class="p">)</span>    <span class="c1"># 30.5 (float)</span>
+
+<span class="c1"># Convert back to string</span>
+<span class="n">string</span> <span class="o">=</span> <span class="n">TypeDetector</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>       <span class="c1"># &#39;true&#39;</span>
+<span class="n">string</span> <span class="o">=</span> <span class="n">TypeDetector</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="mi">8080</span><span class="p">)</span>       <span class="c1"># &#39;8080&#39;</span>
+<span class="n">string</span> <span class="o">=</span> <span class="n">TypeDetector</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="mf">30.5</span><span class="p">)</span>       <span class="c1"># &#39;30.5&#39;</span>
+<span class="n">string</span> <span class="o">=</span> <span class="n">TypeDetector</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>       <span class="c1"># &#39;&#39;</span>
+</pre></div>
+</div>
+</section>
+<section id="best-practices">
+<h2>Best Practices<a class="headerlink" href="#best-practices" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>Use meaningful boolean values</strong>: Prefer <code class="docutils literal notranslate"><span class="pre">true</span></code>/<code class="docutils literal notranslate"><span class="pre">false</span></code> over <code class="docutils literal notranslate"><span class="pre">1</span></code>/<code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+<li><p><strong>Be explicit when needed</strong>: Use <code class="docutils literal notranslate"><span class="pre">cast_type</span></code> for ambiguous values</p></li>
+<li><p><strong>Handle None carefully</strong>: Empty values become <code class="docutils literal notranslate"><span class="pre">None</span></code>, not empty strings</p></li>
+<li><p><strong>Version numbers</strong>: Keep as strings (<code class="docutils literal notranslate"><span class="pre">VERSION=1.0.0</span></code>) to avoid float issues</p></li>
+<li><p><strong>Test type detection</strong>: Verify your values are detected as expected</p></li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="file-formats.html" class="btn btn-neutral float-left" title="File Formats" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="advanced.html" class="btn btn-neutral float-right" title="Advanced Features" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Hadi Cahyadi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
