@@ -31,7 +31,7 @@ pip install envdot[all]
 ## Documentation
 [![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://envdot.readthedocs.io/)
 
-s
+
 ## Quick Start
 
 ### Basic Usage
