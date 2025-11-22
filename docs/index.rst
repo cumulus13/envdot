@@ -63,6 +63,8 @@ Quick Example
    debug = get_env('DEBUG')       # Returns: True (bool)
    port = get_env('PORT')         # Returns: 8080 (int)
    timeout = get_env('TIMEOUT')   # Returns: 30.5 (float)
+   allowed_hosts = os.getenv("*,127.0.0.1 192.168.10.2,example.com", cast_type=list) # Return: [*,127.0.0.1,192.168.10.2,example.com]  # (list)
+   allowed_hosts = os.getenv("*,127.0.0.1 192.168.10.2,example.com", cast_type=tuple) # Return: (*,127.0.0.1,192.168.10.2,example.com)  # (tuple)
 
    # Set new values
    set_env('NEW_FEATURE', True)
