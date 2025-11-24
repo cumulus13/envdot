@@ -23,7 +23,7 @@ version = "%s"
 description = "Enhanced environment variable management with multi-format support"
 readme = "README.md"
 requires-python = ">=3.7"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "Hadi Cahyadi", email = "cumulus13@gmail.com"}
 ]
@@ -32,7 +32,6 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
@@ -55,7 +54,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/cumulus13/envdot"
-Documentation = "https://github.com/cumulus13/envdot#readme"
+Documentation = "https://envdot.readthedocs.io"
 Repository = "https://github.com/cumulus13/envdot"
 "Bug Tracker" = "https://github.com/cumulus13/envdot/issues"
 
@@ -121,11 +120,11 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/cumulus13/envdot",
     packages=[NAME],
+    license="MIT",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Libraries :: Python Modules",
-        "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
@@ -138,5 +137,10 @@ setup(
     extras_require={
         "yaml": ["PyYAML>=5.1"],
         "all": ["PyYAML>=5.1"],
+    },
+    project_urls={
+        "Documentation": "https://envdot.readthedocs.io",
+        "Source": "https://github.com/cumulus13/envdot",
+        "Bug Tracker": "https://github.com/cumulur13/envdot/issues",
     },
 )
