@@ -133,7 +133,7 @@ setup(
         "Programming Language :: Python :: 3.11",
     ],
     python_requires=">=3.7",
-    install_requires=[],
+    install_requires=['version_get'],
     extras_require={
         "yaml": ["PyYAML>=5.1"],
         "all": ["PyYAML>=5.1"],

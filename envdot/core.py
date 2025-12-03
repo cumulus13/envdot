@@ -523,10 +523,12 @@ class DotEnv(metaclass=DotEnvMeta):
                         return value.lower() in ('true', 'yes', 'on', '1')
                     return bool(value)
                 elif cast_type == list:
-                    value = [i.strip() for i in re.split(",| ", value, re.I) if i]
+                    print(f"value [LIST]: {value}")
+                    value = [i.strip() for i in re.split(r"[, ]+", value) if i]
                     return value
                 elif cast_type == tuple:
-                    value = [i.strip() for i in re.split(",| ", value, re.I) if i]
+                    print(f"value [LIST]: {value}")
+                    value = [i.strip() for i in re.split(r"[, ]+", value) if i]
                     
                 return cast_type(value)
 
@@ -623,6 +625,12 @@ class DotEnv(metaclass=DotEnvMeta):
 
     def show(self):
         return self._data.copy()
+
+    def as_dict(self):
+        return self._data
+    
+    def data(self):
+        return self._data
     
     def keys(self) -> list:
         """Get all variable names"""
@@ -729,6 +737,10 @@ def show():
     global _global_env
     return _global_env.show()
 
+def data():
+    global _global_env
+    return _global_env.show()
+
 def get_env(key: str, default: Any = None, cast_type: Optional[type] = None) -> Any:
     """
     Convenience function to get environment variable
@@ -743,7 +755,6 @@ def get_env(key: str, default: Any = None, cast_type: Optional[type] = None) -> 
     """
     return _global_env.get(key, default, cast_type)
 
-
 def set_env(key: str, value: Any, **kwargs) -> DotEnv:
     """
     Convenience function to set environment variable
@@ -757,7 +768,6 @@ def set_env(key: str, value: Any, **kwargs) -> DotEnv:
         DotEnv instance
     """
     return _global_env.set(key, value, **kwargs)
-
 
 def save_env(filepath: Optional[Union[str, Path]] = None, **kwargs) -> DotEnv:
     """
