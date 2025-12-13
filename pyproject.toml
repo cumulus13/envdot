@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "envdot"
-version = "1.0.23"
+version = "1.0.24"
 description = "Enhanced environment variable management with multi-format support"
 readme = "README.md"
 requires-python = ">=3.7"
@@ -34,9 +34,6 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-]
-dependencies = [
-    "version_get",
 ]
 
 [project.optional-dependencies]
