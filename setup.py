@@ -8,6 +8,7 @@
 from setuptools import setup, find_packages
 import traceback
 from pathlib import Path
+import os
 
 NAME = 'envdot'
 
@@ -45,7 +46,6 @@ keywords = [
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
@@ -101,6 +101,7 @@ exclude = '''
   | build
   | dist
 )/
+'''
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -212,7 +213,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/cumulus13/envdot",
-    packages=[NAME],
+    packages=find_packages(),
     license="MIT",
     license_files=["LICENSE"],
     classifiers=[
