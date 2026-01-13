@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+
+# File: envdot/helpers.py
+# Author: Hadi Cahyadi <cumulus13@gmail.com>
+# Date: 2026-01-12
+# Description: Helper functions for enhanced environment variable access
+# License: MIT
+
 """Helper functions for enhanced environment variable access"""
 
 import os

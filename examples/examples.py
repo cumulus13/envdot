@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+
+# File: examples/examples.py
+# Author: Hadi Cahyadi <cumulus13@gmail.com>
+# Date: 2026-01-12
+# Description: Example usage of dot-env package
+# License: MIT
+
 """Example usage of dot-env package"""
 
 from envdot import DotEnv, load_env, get_env, set_env

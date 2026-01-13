@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+
+# File: envdot/core.py
+# Author: Hadi Cahyadi <cumulus13@gmail.com>
+# Date: 2026-01-12
+# Description: Core functionality for dot-env package with full TOML support
+# License: MIT
+
 """Core functionality for dot-env package with full TOML support"""
 
 import os
@@ -6,9 +14,12 @@ import traceback
 import re
 import json
 import configparser
-from pathlib import Path
+from pathlib3 import Path  # type: ignore
 from typing import Any, Dict, Optional, Union
 from .exceptions import FileNotFoundError, ParseError, TypeConversionError
+
+CONFIGFILE = None
+APPLY_TO_OS = True
 
 try:
     import json5
@@ -26,57 +37,55 @@ except ImportError:
     except ImportError:
         HAS_TOML = False
 
-if (len(sys.argv) > 1 and any('--debug' == arg or '-d' == arg for arg in sys.argv)) or (os.getenv('DEBUG') and str(os.getenv('DEBUG', '0')).lower() in ['1', 'true', 'yes', 'ok']):
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'CRITICAL')
+tprint = None  # type: ignore
+SHOW_LOGGING = False
+
+if (len(sys.argv) > 1 and any('--debug' == arg for arg in sys.argv)) or str(os.getenv('DOTENV_DEBUG', os.getenv('DEBUG', False))).lower() in ('1', 'true', 'ok', 'yes', 'on'):
     print("🐞 Debug mode enabled")
     os.environ["DEBUG"] = "1"
     os.environ['LOGGING'] = "1"
     os.environ.pop('NO_LOGGING', None)
     os.environ['TRACEBACK'] = "1"
+    os.environ["LOGGING"] = "1"
+    LOG_LEVEL = "DEBUG"
+    SHOW_LOGGING = True
+    try:
+        from pydebugger import debug  # type: ignore
+    except Exception as e:
+        print("For better experience, please install 'pydebugger' [still in the development stage] (pip)")
+        def debug(**kwargs):  # type: ignore
+            if kwargs:
+                for i in kwargs:
+                    if not i == 'debug':
+                        print(f"[DEBUG (envdot)] [1]: {i} = {kwargs.get(i)}")
 else:
     os.environ['NO_LOGGING'] = "1"
+    def debug(*args, **kwargs):  # type: ignore
+        pass
 
-tprint: Optional[traceback.print_exc] = None
-
-def get_logger(name: str = 'envdot', level: Optional[int] = None, prefer_rich: bool = True, force_plain: bool = False):
-    """Return a configured logger instance."""
+try:
+    from richcolorlog import setup_logging, print_exception as tprint  # type: ignore
+    logger = setup_logging(
+        name="envdot",
+        level=LOG_LEVEL,
+        show=SHOW_LOGGING
+    )
+    HAS_RICHCOLORLOG=True
+except:
+    HAS_RICHCOLORLOG=False
     import logging
-    global tprint
 
-    if level is None:
-        level = logging.DEBUG if str(os.getenv("DEBUG", "")).lower() in ("1", "true", "yes") else logging.INFO
-
-    if force_plain or str(os.getenv("FORCE_PLAIN_LOG", "")).lower() in ("1", "true", "yes"):
-        logging.basicConfig(level=level)
-        return logging.getLogger(name)
-
-    if prefer_rich:
-        try:
-            from richcolorlog import setup_logging as _setup, print_exception as tprint
-            if name and name == '__main__': name = 'envdot'
-            try:
-                logger_obj = _setup(name=name, level=level)
-            except TypeError:
-                try:
-                    logger_obj = _setup()
-                except Exception:
-                    import logging as _logging
-                    _logging.basicConfig(level=level)
-                    logger_obj = _logging.getLogger(name)
-            return logger_obj
-        except Exception:
-            import logging as _logging
-            _logging.basicConfig(level=level)
-            return _logging.getLogger(name)
-
-    import logging as _logging
-    _logging.basicConfig(level=level)
-    return _logging.getLogger(name)
+    try:
+        from .custom_logging import get_logger  # type: ignore
+    except ImportError:
+        from custom_logging import get_logger  # type: ignore
+    
+    logger = get_logger('envdot', level=getattr(logging, LOG_LEVEL.upper(), logging.CRITICAL))
 
 if not tprint:
     def tprint(*args, **kwargs):
         traceback.print_exc(*args, **kwargs)
-
-logger = get_logger()
 
 class TypeDetector:
     """Automatic type detection and conversion"""
@@ -470,12 +479,13 @@ class DotEnv(metaclass=DotEnvMeta):
             filepath = Path(filename)
             if filepath.exists():
                 logger.debug(f"Auto-detected config file: {filepath}")
+                debug(filepath = filepath)
                 return filepath
         
         logger.debug("No config file found in current directory")
         return None
 
-    def find_settings_recursive(self, start_path=None, max_depth=5, filename='.env', exceptions=['node_modules', 'venv', '__pycache__']):
+    def find_settings_recursive(self, start_path=None, max_depth=0, filename='.env', exceptions=['node_modules', 'venv', '__pycache__']):
         """
         Recursively search for configuration file downwards from start_path
         
@@ -556,18 +566,24 @@ class DotEnv(metaclass=DotEnvMeta):
     
     def load(self, filepath: Optional[Union[str, Path]] = None, 
              override: bool = True, apply_to_os: bool = True,
-             store_typed: bool = True, recursive: bool = True, newone: bool = False) -> 'DotEnv':
+             store_typed: bool = True, recursive: bool = True, newone: bool = False, os_overwrite: bool = False, **kwargs) -> 'DotEnv':
         """Load environment variables from file"""
         if filepath:
             self._filepath = Path(filepath)
         
         if not self._filepath:
-            self._filepath = self.find_settings_recursive()
+            # def find_settings_recursive(self, start_path=None, max_depth=0, filename='.env', exceptions=['node_modules', 'venv', '__pycache__']):
+            self._filepath = self.find_settings_recursive(
+                kwargs.get('start_path', None),
+                kwargs.get('max_depth', 0),
+                kwargs.get('filename', ".env"),
+                kwargs.get('exceptions', ['node_modules', 'venv', '__pycache__']),
+            )
         
         if not self._filepath and (newone or self.newone):
             print("No configuration file specified, creating new .env")
             self._filepath = Path.cwd() / '.env'
-            with open(self._filepath, 'w') as f:
+            with open(self._filepath, 'w') as f:  # type: ignore
                 f.write('')
         
         if self._filepath and not self._filepath.exists():
@@ -591,19 +607,30 @@ class DotEnv(metaclass=DotEnvMeta):
         
         raw_data = loader(self._filepath)
         
+        debug(apply_to_os = apply_to_os)
+        debug(os_overwrite = os_overwrite)
+
         for key, value in raw_data.items():
             typed_value = TypeDetector.auto_detect(value)
             
             if override or key not in self._data:
                 self._data[key] = typed_value
-            
+
             if apply_to_os:
-                os.environ[key] = TypeDetector.to_string(typed_value)
+                if not os.getenv(key, False) or os_overwrite:
+                    os.environ[key] = TypeDetector.to_string(typed_value)
+
         
         return self
     
-    def get(self, key: str, default: Any = None, cast_type: Optional[type] = None) -> Any:
+    def get(self, key: str, default: Any = None, cast_type: Optional[type] = None, reload: Optional[bool] = False) -> Any:
         """Get environment variable with automatic type detection"""
+
+        if reload:
+            global CONFIGFILE
+            global APPLY_TO_OS
+            load_env(CONFIGFILE, APPLY_TO_OS)
+            
         value = self._data.get(key)
         
         if value is None:
@@ -634,6 +661,9 @@ class DotEnv(metaclass=DotEnvMeta):
         
         return value
     
+    def get_config(self, *args, **kwargs):
+        return self.get(*args, **kwargs)
+
     def set(self, key: str, value: Any, apply_to_os: bool = True) -> 'DotEnv':
         """Set environment variable"""
         self._data[key] = value
@@ -642,6 +672,9 @@ class DotEnv(metaclass=DotEnvMeta):
             os.environ[key] = TypeDetector.to_string(value)
         
         return self
+
+    def set_config(self, *args, **kwargs):
+        return self.set(*args, **kwargs)
 
     def setenv(self, *args, **kwargs):
         return self.set(*args, **kwargs)
@@ -753,12 +786,32 @@ _global_env = DotEnv(auto_load=False)
 
 
 def load_env(filepath: Optional[Union[str, Path]] = None, 
+             apply_to_os=True,
              auto_replace_getenv: bool = True,
              patch_os: bool = True,
+             debugging: bool = False,
              **kwargs) -> DotEnv:
+
+    global APPLY_TO_OS
+    if not APPLY_TO_OS == apply_to_os:
+        APPLY_TO_OS = apply_to_os
+    if filepath:
+        global CONFIGFILE
+        CONFIGFILE = filepath
     """Convenience function to load environment variables"""
+    if debugging:
+        os.environ['DEBUG'] = '1'
+        os.environ['LOG_LEVEL'] = 'DEBUG'
+        os.environ['LOGGING'] = '1'
+        os.environ.pop('NO_LOGGING', None)
+
     global _global_env
+
+    debug(_global_env = _global_env)
     
+    debug(auto_replace_getenv = auto_replace_getenv)
+    debug(patch_os = patch_os)
+
     if auto_replace_getenv:
         from .helpers import replace_os_getenv
         replace_os_getenv()
@@ -767,11 +820,17 @@ def load_env(filepath: Optional[Union[str, Path]] = None,
         from .helpers import patch_os_module
         patch_os_module()
     
-    _global_env = DotEnv(filepath=filepath, auto_load=False)
+    debug(filepath = filepath)
+    debug(_global_env = _global_env)
+    _global_env = DotEnv(filepath=filepath, auto_load=kwargs.get('auto_load', kwargs.get('reload', False)))
     logger.debug(f"kwargs: {kwargs}")
-    _global_env.load(**kwargs)
+    kwargs.pop('reload', None)
+    _global_env.load(apply_to_os=apply_to_os, **kwargs)
+    # _global_env.load(**kwargs)
     return _global_env
 
+def Env(*args, **kwargs):
+    return load_env(*args, **kwargs)
 
 def show():
     global _global_env

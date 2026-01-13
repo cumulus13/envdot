@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+
+# File: envdot/auto_detect_example.py
+# Author: Hadi Cahyadi <cumulus13@gmail.com>
+# Date: 2026-01-12
+# Description: Complete examples for auto-detection in envdot
+# License: MIT
+
 """
 Complete examples for auto-detection in envdot
 
