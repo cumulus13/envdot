@@ -25,9 +25,9 @@ if errorlevel 1 (
 :: Upload ke repository
 twine upload dist\* -r pypihub
 if errorlevel 1 (
-    c:\TOOLS\ntfy_2.11.0_windows_amd64\ntfy.exe pub -t "Python: FAILED %current_date% %current_time%" -m "[%current_date% %current_time%] ❌ Upload Failed: Failed to upload to the pypi!" -i "https://image.pngaaa.com/287/1947287-middle.png" http://222.222.222.5:89/androcall
+    c:\TOOLS\ntfy_2.11.0_windows_amd64\ntfy.exe pub -t "Python: FAILED %current_date% %current_time%" -m "[%current_date% %current_time%] ❌ Upload Failed: Failed to upload to the pypihub!" -i "https://image.pngaaa.com/287/1947287-middle.png" http://222.222.222.5:89/androcall
 
-    sendgrowl %folder% UploadEvent "Upload Failed" "Failed to upload to the pypi!" -p 2
+    sendgrowl %folder% UploadEvent "Upload Failed" "Failed to upload to the pypihub!" -p 2
 )
 
 twine upload dist\*
