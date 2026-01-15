@@ -11,7 +11,7 @@
 from envdot import DotEnv, load_env, get_env, set_env
 from envdot import getenv_typed, getenv_int, getenv_bool, getenv_float, getenv_str, patch_os_module
 import os
-
+import sys
 
 def example_helpers_basic():
     """Using helper functions for typed os.getenv()"""
@@ -484,13 +484,110 @@ def example_real_world_app():
     print("Feature Flags:", features)
     print()
 
+def example_find():
+    # Create test environment
+    env = DotEnv(newone=True)
+    env.set('DB_HOST', 'localhost')
+    env.set('DB_PORT', 5432)
+    env.set('DB_NAME', 'mydb')
+    env.set('DB_PASSWORD', 'secret123')
+    env.set('REDIS_HOST', 'localhost')
+    env.set('REDIS_PORT', 6379)
+    env.set('API_PUBLIC_KEY', 'pub_xxx')
+    env.set('API_SECRET_KEY', 'sec_yyy')
+    env.set('API_URL', 'https://api.example.com')
+    env.set('DEBUG', True)
+    env.set('DEBUG_PORT', 50001)
+    env.set('APP_VERSION', '1.0.0')
+    
+    print("=" * 60)
+    print("WILDCARD SEARCH EXAMPLES")
+    print("=" * 60)
+    
+    print("\n1. Find all DB configs: env.find('DB_*')")
+    print(env.find('DB_*'))
+    
+    print("\n2. Find all ports: env.find('*_PORT')")
+    print(env.find('*_PORT'))
+    
+    print("\n3. Find all keys containing 'API': env.find('*API*')")
+    print(env.find('*API*'))
+    
+    print("\n" + "=" * 60)
+    print("REGEX SEARCH EXAMPLES")
+    print("=" * 60)
+    
+    print("\n4. Find API keys: env.find(r'^API_\\w+_KEY$', mode='regex')")
+    print(env.find(r'^API_\w+_KEY$', mode='regex'))
+    
+    print("\n5. Find all PORT variables: env.find(r'_PORT$', mode='regex')")
+    print(env.find(r'_PORT$', mode='regex'))
+    
+    print("\n" + "=" * 60)
+    print("CONTAINS SEARCH EXAMPLES")
+    print("=" * 60)
+    
+    print("\n6. Find configs containing 'HOST' (case-insensitive):")
+    print("   env.find('host', mode='contains', case_sensitive=False)")
+    print(env.find('host', mode='contains', case_sensitive=False))
+    
+    print("\n7. Find configs containing 'KEY':")
+    print("   env.find('KEY', mode='contains')")
+    print(env.find('KEY', mode='contains'))
+    
+    print("\n" + "=" * 60)
+    print("STARTSWITH/ENDSWITH EXAMPLES")
+    print("=" * 60)
+    
+    print("\n8. Find configs starting with 'API': env.find('API', mode='startswith')")
+    print(env.find('API', mode='startswith'))
+    
+    print("\n9. Find configs ending with 'PORT': env.find('_PORT', mode='endswith')")
+    print(env.find('_PORT', mode='endswith'))
+    
+    print("\n" + "=" * 60)
+    print("FILTER EXAMPLES")
+    print("=" * 60)
+    
+    print("\n10. Find all integer values:")
+    print("    env.filter(lambda k, v: isinstance(v, int))")
+    print(env.filter(lambda k, v: isinstance(v, int)))
+    
+    print("\n11. Find all boolean values:")
+    print("    env.filter(lambda k, v: isinstance(v, bool))")
+    print(env.filter(lambda k, v: isinstance(v, bool)))
+    
+    print("\n12. Find all ports > 6000:")
+    print("    env.filter(lambda k, v: k.endswith('_PORT') and isinstance(v, int) and v > 6000)")
+    print(env.filter(lambda k, v: k.endswith('_PORT') and isinstance(v, int) and v > 6000))
+    
+    print("\n" + "=" * 60)
+    print("ADVANCED SEARCH EXAMPLES")
+    print("=" * 60)
+    
+    print("\n13. Search by key and value:")
+    print("    env.search(key_pattern='*HOST', value_pattern='*local*')")
+    print(env.search(key_pattern='*HOST', value_pattern='*local*'))
+    
+    print("\n" + "=" * 60)
+    print("HELPER METHODS")
+    print("=" * 60)
+    
+    print("\n14. Get only keys: env.find_keys('DB_*')")
+    print(env.find_keys('DB_*'))
+    
+    print("\n15. Get only values: env.find_values('*_PORT')")
+    print(env.find_values('*_PORT'))
+    
+    print("\n16. Get as list of tuples: env.find('API_*', return_dict=False)")
+    print(env.find('API_*', return_dict=False))
 
-if __name__ == '__main__':
+def main():
     print("DOT-ENV Package Examples\n")
     
     # Run all examples
     examples = [
-        example_basic_usage,
+        example_helpers_basic,
         example_convenience_functions,
         example_multiple_formats,
         example_type_casting,
@@ -503,10 +600,86 @@ if __name__ == '__main__':
         example_clear_and_delete,
         example_error_handling,
         example_real_world_app,
+        example_find,
     ]
     
-    for example in examples:
-        try:
-            example()
-        except Exception as e:
-            print(f"Example {example.__name__} failed: {e}\n")
+    if len(sys.argv) == 1:
+        # Display menu
+        print("Available examples:")
+        print("-" * 60)
+        for n, example_func in enumerate(examples, 1):
+            # Extract function name and format it nicely
+            func_name = example_func.__name__
+            if func_name.startswith('example_'):
+                display_name = func_name.replace('example_', '').replace('_', ' ').title()
+            else:
+                display_name = func_name.replace('_', ' ').title()
+            
+            print(f"{n:2d}. {display_name}")
+        
+        print("-" * 60)
+        q = input("Select number (or press Enter to run all): ").strip()
+        
+        if not q:
+            # Run all examples
+            print("\n" + "=" * 60)
+            print("RUNNING ALL EXAMPLES")
+            print("=" * 60 + "\n")
+            for example in examples:
+                try:
+                    print(f"\n>>> Running: {example.__name__}")
+                    print("-" * 60)
+                    example()
+                    print()
+                except Exception as e:
+                    print(f"❌ Example {example.__name__} failed: {e}\n")
+        
+        elif q.isdigit() and 1 <= int(q) <= len(examples):
+            # Run selected example
+            selected = examples[int(q) - 1]
+            print(f"\n>>> Running: {selected.__name__}")
+            print("=" * 60 + "\n")
+            try:
+                selected()
+            except Exception as e:
+                print(f"❌ Example failed: {e}")
+        else:
+            print(f"❌ Invalid selection. Please choose a number between 1 and {len(examples)}")
+    
+    elif any(arg in sys.argv[1:] for arg in ['-a', '-all', '--all']):
+        # Run all examples via command line
+        print("Running all examples...\n")
+        print("=" * 60 + "\n")
+        for example in examples:
+            try:
+                print(f"\n>>> Running: {example.__name__}")
+                print("-" * 60)
+                example()
+                print()
+            except Exception as e:
+                print(f"❌ Example {example.__name__} failed: {e}\n")
+    
+    else:
+        # Try to run specific example by name
+        example_name = sys.argv[1].lower()
+        found = False
+        
+        for example in examples:
+            if example.__name__.lower().endswith(example_name):
+                print(f"\n>>> Running: {example.__name__}")
+                print("=" * 60 + "\n")
+                try:
+                    example()
+                    found = True
+                except Exception as e:
+                    print(f"❌ Example failed: {e}")
+                break
+        
+        if not found:
+            print(f"❌ Example '{example_name}' not found.")
+            print("\nAvailable examples:")
+            for n, example_func in enumerate(examples, 1):
+                print(f"  {n}. {example_func.__name__}")
+
+if __name__ == '__main__':
+    main()

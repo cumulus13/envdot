@@ -12,10 +12,11 @@ import os
 import sys
 import traceback
 import re
+from fnmatch import fnmatch
 import json
 import configparser
 from pathlib3 import Path  # type: ignore
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, List
 from .exceptions import FileNotFoundError, ParseError, TypeConversionError
 
 CONFIGFILE = None
@@ -747,6 +748,198 @@ class DotEnv(metaclass=DotEnvMeta):
         self._data.clear()
         return self
     
+    def find(self, 
+             pattern: str, 
+             mode: str = 'wildcard',
+             case_sensitive: bool = True,
+             return_dict: bool = True) -> Union[Dict[str, Any], List[tuple]]:
+        """
+        Find configuration keys matching a pattern
+        
+        Args:
+            pattern: Search pattern (wildcard, regex, or substring)
+            mode: Search mode - 'wildcard', 'regex', 'contains', or 'startswith', 'endswith'
+            case_sensitive: Whether search is case-sensitive (default: True)
+            return_dict: Return as dict if True, list of tuples if False
+            
+        Returns:
+            Dictionary or list of (key, value) tuples matching the pattern
+            
+        Examples:
+            >>> env = DotEnv('.env')
+            >>> env.load()
+            
+            # Wildcard search (Unix shell-style)
+            >>> env.find('DB_*')
+            {'DB_HOST': 'localhost', 'DB_PORT': 5432, 'DB_NAME': 'mydb'}
+            
+            >>> env.find('*_PORT')
+            {'DB_PORT': 5432, 'REDIS_PORT': 6379}
+            
+            # Regex search
+            >>> env.find(r'^API_\w+_KEY$', mode='regex')
+            {'API_PUBLIC_KEY': 'xxx', 'API_SECRET_KEY': 'yyy'}
+            
+            # Contains search
+            >>> env.find('password', mode='contains', case_sensitive=False)
+            {'DB_PASSWORD': 'secret', 'ADMIN_PASSWORD': 'admin123'}
+            
+            # Starts with
+            >>> env.find('REDIS', mode='startswith')
+            {'REDIS_HOST': 'localhost', 'REDIS_PORT': 6379}
+            
+            # Ends with
+            >>> env.find('_URL', mode='endswith')
+            {'API_URL': 'https://api.example.com', 'DATABASE_URL': 'postgres://...'}
+        """
+        results = {}
+        
+        # Prepare pattern based on case sensitivity
+        if not case_sensitive:
+            pattern_lower = pattern.lower()
+        
+        for key, value in self._data.items():
+            match = False
+            search_key = key if case_sensitive else key.lower()
+            search_pattern = pattern if case_sensitive else pattern_lower
+            
+            if mode == 'wildcard':
+                # Unix shell-style wildcards: *, ?, [seq], [!seq]
+                match = fnmatch(search_key, search_pattern)
+                
+            elif mode == 'regex':
+                # Regular expression matching
+                try:
+                    flags = 0 if case_sensitive else re.IGNORECASE
+                    match = bool(re.search(search_pattern, key, flags=flags))
+                except re.error as e:
+                    raise ValueError(f"Invalid regex pattern: {e}")
+                    
+            elif mode == 'contains':
+                # Substring matching
+                match = search_pattern in search_key
+                
+            elif mode == 'startswith':
+                # Prefix matching
+                match = search_key.startswith(search_pattern)
+                
+            elif mode == 'endswith':
+                # Suffix matching
+                match = search_key.endswith(search_pattern)
+                
+            else:
+                raise ValueError(f"Invalid mode: {mode}. Use 'wildcard', 'regex', 'contains', 'startswith', or 'endswith'")
+            
+            if match:
+                results[key] = value
+        
+        return results if return_dict else list(results.items())
+    
+    def find_wildcard(self, pattern: str, **kwargs) -> Dict[str, Any]:
+        """Shortcut for wildcard search"""
+        return self.find(pattern, mode='wildcard', **kwargs)
+    
+    def find_regex(self, pattern: str, **kwargs) -> Dict[str, Any]:
+        """Shortcut for regex search"""
+        return self.find(pattern, mode='regex', **kwargs)
+    
+    def find_contains(self, pattern: str, **kwargs) -> Dict[str, Any]:
+        """Shortcut for contains search"""
+        return self.find(pattern, mode='contains', **kwargs)
+    
+    def find_keys(self, pattern: str, mode: str = 'wildcard', **kwargs) -> List[str]:
+        """
+        Find keys matching pattern, return only keys
+        
+        Returns:
+            List of matching keys
+        """
+        results = self.find(pattern, mode=mode, return_dict=True, **kwargs)
+        return list(results.keys())
+    
+    def find_values(self, pattern: str, mode: str = 'wildcard', **kwargs) -> List[Any]:
+        """
+        Find keys matching pattern, return only values
+        
+        Returns:
+            List of matching values
+        """
+        results = self.find(pattern, mode=mode, return_dict=True, **kwargs)
+        return list(results.values())
+    
+    def filter(self, predicate) -> Dict[str, Any]:
+        """
+        Filter config using a custom predicate function
+        
+        Args:
+            predicate: Function that takes (key, value) and returns bool
+            
+        Returns:
+            Dictionary of items where predicate returns True
+            
+        Examples:
+            >>> # Find all integer ports
+            >>> env.filter(lambda k, v: k.endswith('_PORT') and isinstance(v, int))
+            
+            >>> # Find all boolean debug flags
+            >>> env.filter(lambda k, v: 'DEBUG' in k and isinstance(v, bool))
+            
+            >>> # Find all non-empty strings
+            >>> env.filter(lambda k, v: isinstance(v, str) and v.strip())
+        """
+        return {k: v for k, v in self._data.items() if predicate(k, v)}
+    
+    def search(self, 
+               key_pattern: Optional[str] = None,
+               value_pattern: Optional[str] = None,
+               mode: str = 'wildcard',
+               **kwargs) -> Dict[str, Any]:
+        """
+        Advanced search by both key and value patterns
+        
+        Args:
+            key_pattern: Pattern to match keys
+            value_pattern: Pattern to match values (as strings)
+            mode: Search mode
+            **kwargs: Additional arguments for find()
+            
+        Returns:
+            Dictionary matching both patterns (AND logic)
+            
+        Examples:
+            >>> # Find database configs with 'localhost'
+            >>> env.search(key_pattern='DB_*', value_pattern='*localhost*')
+            
+            >>> # Find all API keys containing 'prod'
+            >>> env.search(key_pattern='*_KEY', value_pattern='*prod*')
+        """
+        results = self._data.copy()
+        
+        # Filter by key pattern
+        if key_pattern:
+            results = {k: v for k, v in results.items() 
+                      if k in self.find(key_pattern, mode=mode, **kwargs)}
+        
+        # Filter by value pattern
+        if value_pattern:
+            filtered = {}
+            for key, value in results.items():
+                value_str = str(value) if value is not None else ''
+                
+                if mode == 'wildcard':
+                    if fnmatch(value_str, value_pattern):
+                        filtered[key] = value
+                elif mode == 'regex':
+                    if re.search(value_pattern, value_str):
+                        filtered[key] = value
+                elif mode == 'contains':
+                    if value_pattern in value_str:
+                        filtered[key] = value
+                        
+            results = filtered
+        
+        return results
+
     def __getattr__(self, name: str) -> Any:
         if name in self._data:
             return self._data[name]
@@ -855,3 +1048,34 @@ def set_env(key: str, value: Any, **kwargs) -> DotEnv:
 def save_env(filepath: Optional[Union[str, Path]] = None, **kwargs) -> DotEnv:
     """Convenience function to save environment variables"""
     return _global_env.save(filepath, **kwargs)
+
+# ============================================================================
+# Global convenience functions
+# ============================================================================
+
+def find_env(pattern: str, mode: str = 'wildcard', **kwargs) -> Dict[str, Any]:
+    """
+    Global function to find environment variables
+    
+    Examples:
+        >>> from envdot import load_env, find_env
+        >>> load_env()
+        >>> find_env('DB_*')
+        >>> find_env(r'^\w+_PORT$', mode='regex')
+    """
+    global _global_env
+    return _global_env.find(pattern, mode=mode, **kwargs)  # type: ignore
+
+
+def filter_env(predicate) -> Dict[str, Any]:
+    """
+    Global function to filter environment variables
+    
+    Examples:
+        >>> from envdot import load_env, filter_env
+        >>> load_env()
+        >>> filter_env(lambda k, v: isinstance(v, int) and v > 1000)
+    """
+    global _global_env
+    return _global_env.filter(predicate)
+
