@@ -10,14 +10,15 @@
 
 import os
 import re
-from typing import Any, Optional, TypeVar
+import fnmatch
+from typing import Any, Optional, TypeVar, Union, List, Dict
 from .core import TypeDetector
 
 T = TypeVar('T')
 
 # Save original os.getenv IMMEDIATELY when module loads
-_original_getenv = os.getenv if not hasattr(os, '_dot_env_original_getenv') else os._dot_env_original_getenv
-os._dot_env_original_getenv = _original_getenv
+_original_getenv = os.getenv if not hasattr(os, '_env_dot_original_getenv') else os._env_dot_original_getenv
+os._env_dot_original_getenv = _original_getenv
 
 
 def getenv_typed(key: str, default: Any = None, cast_type: Optional[type] = None) -> Any:
@@ -46,7 +47,7 @@ def getenv_typed(key: str, default: Any = None, cast_type: Optional[type] = None
     """
     # ALWAYS use the saved original, never os.getenv
 
-    value = os._dot_env_original_getenv(key)
+    value = os._env_dot_original_getenv(key)
     
     if value is None:
         return default
@@ -116,7 +117,6 @@ def getenv_str(key: str, default: str = '') -> str:
     """Get environment variable as string"""
     return getenv_typed(key, default=default, cast_type=str)
 
-
 # Monkey-patch os module for convenience (optional usage)
 def patch_os_module():
     """
@@ -139,15 +139,18 @@ def patch_os_module():
     # Import here to avoid circular import
     import envdot.core as core_module
     
-    os.getenv_typed = getenv_typed
-    os.getenv_int = getenv_int
-    os.getenv_float = getenv_float
-    os.getenv_bool = getenv_bool
-    os.getenv_str = getenv_str
-    os.setenv_typed = setenv_typed
+    os.getenv_typed = getenv_typed  # type: ignore
+    os.getenv_int = getenv_int  # type: ignore
+    os.getenv_float = getenv_float  # type: ignore
+    os.getenv_bool = getenv_bool  # type: ignore
+    os.getenv_str = getenv_str  # type: ignore
+    os.setenv_typed = setenv_typed  # type: ignore
     # def set_env(key: str, value: Any, **kwargs) -> DotEnv:
-    os.setenv = lambda key, value, **kwargs: core_module.set_env(key, value, **kwargs)
-    os.save_env = lambda filepath=None, **kwargs: core_module.save_env(filepath, **kwargs)
+    os.setenv = lambda key, value, **kwargs: core_module.set_env(key, value, **kwargs)  # type: ignore
+    os.save_env = lambda filepath=None, **kwargs: core_module.save_env(filepath, **kwargs)  # type: ignore
+    os.find = lambda key, value, **kwargs: core_module.find(**args, **kwargs)  # type: ignore
+    os.filter = lambda key, value, **kwargs: core_module.filter(**args, **kwargs)  # type: ignore
+    os.search = lambda key, value, **kwargs: core_module.search(**args, **kwargs)  # type: ignore
 
 
 def replace_os_getenv():
@@ -175,4 +178,4 @@ def restore_os_getenv():
     """
     Restore original os.getenv() behavior
     """
-    os.getenv = os._dot_env_original_getenv
+    os.getenv = os._env_dot_original_getenv  # type: ignore

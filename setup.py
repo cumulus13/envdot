@@ -230,6 +230,7 @@ setup(
     python_requires=">=3.8",
     install_requires=[
         "version-get>=0.1.0",
+        "pathlib3"
     ],
     extras_require={
         "full": [

@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "envdot"
-version = "1.0.28"
+version = "1.0.29"
 description = "Enhanced environment variable management with multi-format support (.env, JSON, YAML, INI, TOML)"
 readme = "README.md"
 requires-python = ">=3.8"

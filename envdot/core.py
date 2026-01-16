@@ -12,6 +12,7 @@ import os
 import sys
 import traceback
 import re
+import hashlib
 from fnmatch import fnmatch
 import json
 import configparser
@@ -432,6 +433,7 @@ class DotEnv(metaclass=DotEnvMeta):
         self._filepath: Optional[Path] = None
         self._format: Optional[str] = None
         self.newone = newone
+        # self.stat = None
         
         if filepath:
             self._filepath = Path(filepath)
@@ -592,6 +594,7 @@ class DotEnv(metaclass=DotEnvMeta):
         elif not self._filepath:
             return self
         
+        # if self._filepath: self.stat = os.stat(self._filepath)
         self._format = FileHandler.detect_format(self._filepath)
         
         loaders = {
@@ -623,15 +626,24 @@ class DotEnv(metaclass=DotEnvMeta):
 
         
         return self
+
+    # def check_file(self, configfile):
+    #     stat = os.stat(configfile)
+    #     if not self.stat:
+    #         self.stat = os.stat(configfile)
+    #         return False
+    #     return stat.st_size != self.stat.st_size or stat.st_mtime != self.stat.st_mtime
     
     def get(self, key: str, default: Any = None, cast_type: Optional[type] = None, reload: Optional[bool] = False) -> Any:
         """Get environment variable with automatic type detection"""
 
-        if reload:
-            global CONFIGFILE
-            global APPLY_TO_OS
-            load_env(CONFIGFILE, APPLY_TO_OS)
+        # global CONFIGFILE
             
+        if reload:# or not self.check_file(CONFIGFILE):
+            global APPLY_TO_OS
+            global CONFIGFILE
+            # self.load(CONFIGFILE, apply_to_os=APPLY_TO_OS)
+
         value = self._data.get(key)
         
         if value is None:
@@ -752,7 +764,7 @@ class DotEnv(metaclass=DotEnvMeta):
              pattern: str, 
              mode: str = 'wildcard',
              case_sensitive: bool = True,
-             return_dict: bool = True) -> Union[Dict[str, Any], List[tuple]]:
+             return_dict: bool = True, reload: bool = False) -> Union[Dict[str, Any], List[tuple]]:
         """
         Find configuration keys matching a pattern
         
@@ -792,6 +804,12 @@ class DotEnv(metaclass=DotEnvMeta):
             >>> env.find('_URL', mode='endswith')
             {'API_URL': 'https://api.example.com', 'DATABASE_URL': 'postgres://...'}
         """
+
+        if reload:
+            global CONFIGFILE
+            global APPLY_TO_OS
+            load_env(CONFIGFILE, APPLY_TO_OS)
+        
         results = {}
         
         # Prepare pattern based on case sensitivity
