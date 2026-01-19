@@ -40,6 +40,9 @@ Features
 📦 **Zero Dependencies**
    Core functionality works without external packages (YAML support requires PyYAML).
 
+🌿 **Auto re-load**
+   Automatically reload the config file if the hash changes or use `reload=True`
+
 Quick Example
 -------------
 
@@ -67,7 +70,10 @@ Quick Example
    allowed_hosts = os.getenv("*,127.0.0.1 192.168.10.2,example.com", cast_type=tuple) # Return: (*,127.0.0.1,192.168.10.2,example.com)  # (tuple)
 
    # Set new values
-   set_env('NEW_FEATURE', True)
+   set_env('NEW_FEATURE', True) or os.setenv('NEW_FEATURE', True)
+
+   # Find by keys
+   os.find("DB_*") # return dict
 
 Installation
 ------------

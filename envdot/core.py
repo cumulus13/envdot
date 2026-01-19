@@ -19,9 +19,9 @@ import configparser
 from pathlib3 import Path  # type: ignore
 from typing import Any, Dict, Optional, Union, List
 from .exceptions import FileNotFoundError, ParseError, TypeConversionError
+import warnings
 
-CONFIGFILE = None
-APPLY_TO_OS = True
+ENVDOT_CONFIGFILE = ""
 
 try:
     import json5
@@ -392,6 +392,38 @@ class FileHandler:
             tomli_w.dump(data, f)
 
 
+# class DotEnvMeta(type):
+#     """Metaclass to enable attribute-style access and automatic saving"""
+    
+#     def __call__(cls, *args, **kwargs):
+#         instance = super().__call__(*args, **kwargs)
+#         return instance
+    
+#     def __getattribute__(cls, name):
+#         try:
+#             return super().__getattribute__(name)
+#         except AttributeError:
+#             global _global_env
+#             if hasattr(_global_env, name):
+#                 return getattr(_global_env, name)
+#             raise
+    
+#     def __setattr__(cls, name, value):
+#         if name.startswith('_') or name in cls.__dict__:
+#             super().__setattr__(name, value)
+#         else:
+#             global _global_env
+#             if hasattr(_global_env, name):
+#                 setattr(_global_env, name, value)
+#             else:
+#                 _global_env.__set__(name, value)
+    
+#     def __getattr__(cls, name):
+#         global _global_env
+#         if hasattr(_global_env, name):
+#             return getattr(_global_env, name)
+#         raise AttributeError(f"'{cls.__name__}' object has no attribute '{name}'")
+
 class DotEnvMeta(type):
     """Metaclass to enable attribute-style access and automatic saving"""
     
@@ -409,12 +441,16 @@ class DotEnvMeta(type):
             raise
     
     def __setattr__(cls, name, value):
-        if name.startswith('_') or name in cls.__dict__:
+        # Internal attributes that should NOT trigger save
+        INTERNAL_ATTRS = {'newone', 'hash', 'stat'}
+        
+        if name.startswith('_') or name in cls.__dict__ or name in INTERNAL_ATTRS:
             super().__setattr__(name, value)
         else:
             global _global_env
             if hasattr(_global_env, name):
-                setattr(_global_env, name, value)
+                # IMPORTANT: Use object.__setattr__ to bypass __setattr__ instances
+                object.__setattr__(_global_env, name, value)
             else:
                 _global_env.__set__(name, value)
     
@@ -424,27 +460,30 @@ class DotEnvMeta(type):
             return getattr(_global_env, name)
         raise AttributeError(f"'{cls.__name__}' object has no attribute '{name}'")
 
-
 class DotEnv(metaclass=DotEnvMeta):
     """Main class for managing environment variables from multiple file formats"""
     
     def __init__(self, filepath: Optional[Union[str, Path]] = None, auto_load: bool = True, newone: bool = False):
+        global ENVDOT_CONFIGFILE
         self._data: Dict[str, Any] = {}
         self._filepath: Optional[Path] = None
         self._format: Optional[str] = None
-        self.newone = newone
-        # self.stat = None
+        # self.newone = newone
+
+        object.__setattr__(self, 'newone', newone)
+        object.__setattr__(self, 'hash', '')
         
-        if filepath:
+        if filepath and Path(filepath).is_file():
             self._filepath = Path(filepath)
+            ENVDOT_CONFIGFILE = filepath
         else:
             self._filepath = self._find_config_file()
         
         if auto_load and self._filepath and self._filepath.exists():
             self.load()
     
-    @staticmethod
-    def _find_config_file() -> Optional[Path]:
+    # @staticmethod
+    def _find_config_file(self) -> Optional[Path]:
         """
         Find common configuration files in current directory
         
@@ -461,6 +500,9 @@ class DotEnv(metaclass=DotEnvMeta):
         Returns:
             Path to first found config file, or None if not found
         """
+
+        global ENVDOT_CONFIGFILE
+
         # Priority order: .env first, then recommended formats, then legacy
         common_files = [
             '.env',              # Standard environment file (highest priority)
@@ -483,6 +525,8 @@ class DotEnv(metaclass=DotEnvMeta):
             if filepath.exists():
                 logger.debug(f"Auto-detected config file: {filepath}")
                 debug(filepath = filepath)
+                object.__setattr__(self, 'hash', Path(filepath).hash())
+                ENVDOT_CONFIGFILE = filepath
                 return filepath
         
         logger.debug("No config file found in current directory")
@@ -547,6 +591,7 @@ class DotEnv(metaclass=DotEnvMeta):
                 settings_path = os.path.join(path, f)
                 if os.path.isfile(settings_path):
                     logger.debug(f"Found config file recursively: {settings_path}")
+                    self.hash = Path(settings_path).hash()
                     return Path(settings_path)
             
             # Search in subdirectories
@@ -568,23 +613,28 @@ class DotEnv(metaclass=DotEnvMeta):
         return search_directory(start_path)
     
     def load(self, filepath: Optional[Union[str, Path]] = None, 
-             override: bool = True, apply_to_os: bool = True,
-             store_typed: bool = True, recursive: bool = True, newone: bool = False, os_overwrite: bool = False, **kwargs) -> 'DotEnv':
+         override: bool = True, apply_to_os: bool = True,
+         store_typed: bool = True, recursive: bool = True, newone: bool = False, os_overwrite: bool = False, **kwargs) -> 'DotEnv':
         """Load environment variables from file"""
+        debug(filepath = filepath)
         if filepath:
             self._filepath = Path(filepath)
         
         if not self._filepath:
-            # def find_settings_recursive(self, start_path=None, max_depth=0, filename='.env', exceptions=['node_modules', 'venv', '__pycache__']):
             self._filepath = self.find_settings_recursive(
                 kwargs.get('start_path', None),
                 kwargs.get('max_depth', 0),
                 kwargs.get('filename', ".env"),
                 kwargs.get('exceptions', ['node_modules', 'venv', '__pycache__']),
             )
-        
+
+        debug(self__filepath = self._filepath)
+        debug(newone = newone)
+        debug(self_newone = self.newone)
+
         if not self._filepath and (newone or self.newone):
-            print("No configuration file specified, creating new .env")
+            debug("No configuration file specified, creating new .env")
+            warnings.warn("No configuration file specified, creating new .env")
             self._filepath = Path.cwd() / '.env'
             with open(self._filepath, 'w') as f:  # type: ignore
                 f.write('')
@@ -594,7 +644,6 @@ class DotEnv(metaclass=DotEnvMeta):
         elif not self._filepath:
             return self
         
-        # if self._filepath: self.stat = os.stat(self._filepath)
         self._format = FileHandler.detect_format(self._filepath)
         
         loaders = {
@@ -610,11 +659,32 @@ class DotEnv(metaclass=DotEnvMeta):
             raise ParseError(f"Unsupported file format: {self._format}")
         
         raw_data = loader(self._filepath)
+        debug(raw_data = raw_data)
         
         debug(apply_to_os = apply_to_os)
         debug(os_overwrite = os_overwrite)
 
+        # Filter internal attributes
+        INTERNAL_ATTRS = {'hash', 'newone', 'stat'}
+        
+        # If override=True, delete keys that do not exist in the file
+        if override:
+            keys_to_remove = []
+            for key in list(self._data.keys()):
+                if key.lower() not in INTERNAL_ATTRS and key not in raw_data:
+                    keys_to_remove.append(key)
+            
+            for key in keys_to_remove:
+                del self._data[key]
+                if apply_to_os and key in os.environ:
+                    del os.environ[key]
+        
+        # Load/update data from file
         for key, value in raw_data.items():
+            # SKIP internal attributes
+            if key.lower() in INTERNAL_ATTRS:
+                continue
+            
             typed_value = TypeDetector.auto_detect(value)
             
             if override or key not in self._data:
@@ -624,36 +694,59 @@ class DotEnv(metaclass=DotEnvMeta):
                 if not os.getenv(key, False) or os_overwrite:
                     os.environ[key] = TypeDetector.to_string(typed_value)
 
-        
         return self
 
-    # def check_file(self, configfile):
-    #     stat = os.stat(configfile)
-    #     if not self.stat:
-    #         self.stat = os.stat(configfile)
-    #         return False
-    #     return stat.st_size != self.stat.st_size or stat.st_mtime != self.stat.st_mtime
+    def check_file(self, configfile):
+        """Check if config file has changed using hash comparison"""
+        if not configfile:
+            return True
+        
+        # Initialize hash if it doesn't exist yet (BYPASS __setattr__)
+        if not hasattr(self, 'hash') or not self.hash:
+            new_hash = Path(configfile).hash()
+            object.__setattr__(self, 'hash', new_hash)
+            return True
+        
+        # Calculate the hash of the current file
+        current_hash = Path(configfile).hash()
+        
+        # Compare
+        if self.hash == current_hash:
+            return True  # Files are NOT changed
+        else:
+            # Update hash BYPASS __setattr__
+            object.__setattr__(self, 'hash', current_hash)
+            return False  # File CHANGED
     
     def get(self, key: str, default: Any = None, cast_type: Optional[type] = None, reload: Optional[bool] = False) -> Any:
         """Get environment variable with automatic type detection"""
 
-        # global CONFIGFILE
+        debug(self__filepath = self._filepath)
+        if getattr(self, 'hash'):
+            debug(self_hash = self.hash)
             
-        if reload:# or not self.check_file(CONFIGFILE):
-            global APPLY_TO_OS
-            global CONFIGFILE
-            # self.load(CONFIGFILE, apply_to_os=APPLY_TO_OS)
+        debug(reload = reload)
+
+        if reload or not self.check_file(self._filepath):
+            self.load(self._filepath, apply_to_os=True)
+            new_hash = Path(self._filepath).hash()
+            debug(new_hash = new_hash)
+            object.__setattr__(self, 'hash', new_hash)
+            object.__setattr__(self, 'hash', new_hash)
 
         value = self._data.get(key)
-        
+        debug(value = value)
+
         if value is None:
             value = os.environ.get(key)
             if value is not None:
                 value = TypeDetector.auto_detect(value)
         
+        debug(default = default)
         if value is None:
             return default
         
+        debug(cast_type = cast_type)
         if cast_type:
             try:
                 if cast_type == bool:
@@ -671,7 +764,7 @@ class DotEnv(metaclass=DotEnvMeta):
                 return cast_type(value)
             except (ValueError, TypeError) as e:
                 raise TypeConversionError(f"Cannot convert '{value}' to {cast_type.__name__}: {e}")
-        
+        debug(value = value)
         return value
     
     def get_config(self, *args, **kwargs):
@@ -735,19 +828,30 @@ class DotEnv(metaclass=DotEnvMeta):
     
     def all(self) -> Dict[str, Any]:
         """Get all environment variables as dictionary"""
+        data = os.environ.copy()
+        data.update(self._data)
+        return data
+
+    def show(self, all = False):
+        if all:
+            return self.all()
         return self._data.copy()
 
-    def show(self):
-        return self._data.copy()
-
-    def as_dict(self):
+    def as_dict(self, all = False):
+        if all:
+            return self.all()
         return self._data
     
-    def data(self):
+    def data(self, all = False):
+        if all:
+            return self.all()
         return self._data
     
-    def keys(self) -> list:
+    def keys(self, all = False) -> list:
         """Get all variable names"""
+        if all:
+            data = self.all()
+            return list(data.keys())
         return list(self._data.keys())
     
     def clear(self, clear_os: bool = False) -> 'DotEnv':
@@ -805,21 +909,38 @@ class DotEnv(metaclass=DotEnvMeta):
             {'API_URL': 'https://api.example.com', 'DATABASE_URL': 'postgres://...'}
         """
 
-        if reload:
-            global CONFIGFILE
-            global APPLY_TO_OS
-            load_env(CONFIGFILE, APPLY_TO_OS)
-        
+        pattern_lower = ""  # type: ignore
+
+        debug(self__filepath = self._filepath)
+        if getattr(self, 'hash'):
+            debug(self_hash = self.hash)
+            
+        debug(reload = reload)
+
+        if reload or not self.check_file(self._filepath):
+            self.load(self._filepath, apply_to_os=True)
+            new_hash = Path(self._filepath).hash()
+            debug(new_hash = new_hash)
+            object.__setattr__(self, 'hash', new_hash)
+            object.__setattr__(self, 'hash', new_hash)
+
         results = {}
         
         # Prepare pattern based on case sensitivity
         if not case_sensitive:
             pattern_lower = pattern.lower()
         
-        for key, value in self._data.items():
+        data = os.environ.copy()
+        data.update(self._data)
+
+        # for key, value in self._data.items():
+        for key, value in data.items():  # type: ignore
             match = False
             search_key = key if case_sensitive else key.lower()
             search_pattern = pattern if case_sensitive else pattern_lower
+
+            if not search_pattern:
+                return {}
             
             if mode == 'wildcard':
                 # Unix shell-style wildcards: *, ?, [seq], [!seq]
@@ -931,7 +1052,11 @@ class DotEnv(metaclass=DotEnvMeta):
             >>> # Find all API keys containing 'prod'
             >>> env.search(key_pattern='*_KEY', value_pattern='*prod*')
         """
-        results = self._data.copy()
+
+        results = os.environ.copy()
+        results.update(self._data)
+
+        # results = self._data.copy()
         
         # Filter by key pattern
         if key_pattern:
@@ -965,12 +1090,27 @@ class DotEnv(metaclass=DotEnvMeta):
             return TypeDetector.auto_detect(os.environ[name])
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
     
+    # def __setattr__(self, name: str, value: Any) -> None:
+    #     if name.startswith('_'):
+    #         super().__setattr__(name, value)
+    #     else:
+    #         self.set(name, value, apply_to_os=True)
+    #         self.save()
+
     def __setattr__(self, name: str, value: Any) -> None:
-        if name.startswith('_'):
-            super().__setattr__(name, value)
+        """Set attributes with protection for internal attributes"""
+        # Internal attributes that should NOT be included in _data and auto-save
+        INTERNAL_ATTRS = {'newone', 'hash', 'stat'}
+        
+        if name.startswith('_') or name in INTERNAL_ATTRS:
+            # Bypass custom logic, set it directly to the object
+            object.__setattr__(self, name, value)
         else:
-            self.set(name, value, apply_to_os=True)
-            self.save()
+            # User attribute, save to _data and file
+            if hasattr(self, '_data'):
+                self.set(name, value, apply_to_os=True)
+                if hasattr(self, '_filepath') and self._filepath:
+                    self.save()
 
     def __getitem__(self, key: str) -> Any:
         return self.get(key)
@@ -1003,12 +1143,6 @@ def load_env(filepath: Optional[Union[str, Path]] = None,
              debugging: bool = False,
              **kwargs) -> DotEnv:
 
-    global APPLY_TO_OS
-    if not APPLY_TO_OS == apply_to_os:
-        APPLY_TO_OS = apply_to_os
-    if filepath:
-        global CONFIGFILE
-        CONFIGFILE = filepath
     """Convenience function to load environment variables"""
     if debugging:
         os.environ['DEBUG'] = '1'
@@ -1047,19 +1181,20 @@ def show():
     global _global_env
     return _global_env.show()
 
-
 def data():
     global _global_env
     return _global_env.show()
-
 
 def get_env(key: str, default: Any = None, cast_type: Optional[type] = None) -> Any:
     """Convenience function to get environment variable"""
     return _global_env.get(key, default, cast_type)
 
-
-def set_env(key: str, value: Any, **kwargs) -> DotEnv:
+def set_env(key: str, value: Optional[Any] = None, **kwargs) -> DotEnv:
     """Convenience function to set environment variable"""
+    if isinstance(key, dict) and not value:
+        _key = list(key.keys())[0]
+        _value = key.get(_key)
+        return _global_env.set(_key, _value, **kwargs)    
     return _global_env.set(key, value, **kwargs)
 
 
@@ -1097,3 +1232,6 @@ def filter_env(predicate) -> Dict[str, Any]:
     global _global_env
     return _global_env.filter(predicate)
 
+def search_env(pattern: str, value: Optional[str] = None, mode: str = 'wildcard', **kwargs) -> Dict[str, Any]:
+    global _global_env
+    return _global_env.search(pattern, value, mode, **kwargs)

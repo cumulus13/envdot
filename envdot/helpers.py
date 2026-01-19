@@ -13,6 +13,59 @@ import re
 import fnmatch
 from typing import Any, Optional, TypeVar, Union, List, Dict
 from .core import TypeDetector
+import traceback
+import sys
+
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'CRITICAL')
+tprint = None  # type: ignore
+SHOW_LOGGING = False
+
+if (len(sys.argv) > 1 and any('--debug' == arg for arg in sys.argv)) or str(os.getenv('DOTENV_DEBUG', os.getenv('DEBUG', False))).lower() in ('1', 'true', 'ok', 'yes', 'on'):
+    print("🐞 Debug mode enabled")
+    os.environ["DEBUG"] = "1"
+    os.environ['LOGGING'] = "1"
+    os.environ.pop('NO_LOGGING', None)
+    os.environ['TRACEBACK'] = "1"
+    os.environ["LOGGING"] = "1"
+    LOG_LEVEL = "DEBUG"
+    SHOW_LOGGING = True
+    try:
+        from pydebugger import debug  # type: ignore
+    except Exception as e:
+        print("For better experience, please install 'pydebugger' [still in the development stage] (pip)")
+        def debug(**kwargs):  # type: ignore
+            if kwargs:
+                for i in kwargs:
+                    if not i == 'debug':
+                        print(f"[DEBUG (envdot)] [1]: {i} = {kwargs.get(i)}")
+else:
+    os.environ['NO_LOGGING'] = "1"
+    def debug(*args, **kwargs):  # type: ignore
+        pass
+
+try:
+    from richcolorlog import setup_logging, print_exception as tprint  # type: ignore
+    logger = setup_logging(
+        name="envdot",
+        level=LOG_LEVEL,
+        show=SHOW_LOGGING
+    )
+    HAS_RICHCOLORLOG=True
+except:
+    HAS_RICHCOLORLOG=False
+    import logging
+
+    try:
+        from .custom_logging import get_logger  # type: ignore
+    except ImportError:
+        from custom_logging import get_logger  # type: ignore
+    
+    logger = get_logger('envdot', level=getattr(logging, LOG_LEVEL.upper(), logging.CRITICAL))
+
+if not tprint:
+    def tprint(*args, **kwargs):
+        traceback.print_exc(*args, **kwargs)
+
 
 T = TypeVar('T')
 
@@ -47,7 +100,9 @@ def getenv_typed(key: str, default: Any = None, cast_type: Optional[type] = None
     """
     # ALWAYS use the saved original, never os.getenv
 
-    value = os._env_dot_original_getenv(key)
+    value = os._env_dot_original_getenv(key)  # type: ignore
+    logger.debug(f"key: {key}")  # type: ignore
+    logger.debug(f"value: {value}")  # type: ignore
     
     if value is None:
         return default
@@ -129,6 +184,7 @@ def patch_os_module():
         - os.getenv_bool()
         - os.setenv_typed()
         - os.save_env()
+        - os.setenv()
     
     Example:
         >>> from dotenv.helpers import patch_os_module
@@ -148,9 +204,9 @@ def patch_os_module():
     # def set_env(key: str, value: Any, **kwargs) -> DotEnv:
     os.setenv = lambda key, value, **kwargs: core_module.set_env(key, value, **kwargs)  # type: ignore
     os.save_env = lambda filepath=None, **kwargs: core_module.save_env(filepath, **kwargs)  # type: ignore
-    os.find = lambda key, value, **kwargs: core_module.find(**args, **kwargs)  # type: ignore
-    os.filter = lambda key, value, **kwargs: core_module.filter(**args, **kwargs)  # type: ignore
-    os.search = lambda key, value, **kwargs: core_module.search(**args, **kwargs)  # type: ignore
+    os.find = lambda *args, **kwargs: core_module.find_env(*args, **kwargs)  # type: ignore
+    os.filter = lambda *args, **kwargs: core_module.filter_env(*args, **kwargs)  # type: ignore
+    os.search = lambda *args, **kwargs: core_module.search_env(*args, **kwargs)  # type: ignore
 
 
 def replace_os_getenv():
