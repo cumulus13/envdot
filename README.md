@@ -972,6 +972,16 @@ See the `examples/` directory for complete examples:
 
 ---
 
+## 📄 Debug envs
+
+- `DOTENV_DEBUG` 
+- `LOG_LEVEL_ENVDOT` | `ENVDOT_LOG_LEVEL` - default: `CRITICAL`
+- `NO_LOGGING` - use by richcolorlog
+- `PYDEBUGGER` - use by pydebugger
+- `DEBUG` - global debug env for any modules 
+
+---
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
