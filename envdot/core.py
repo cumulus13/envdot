@@ -12,14 +12,16 @@ import os
 import sys
 import traceback
 import re
-import hashlib
+# import hashlib
 from fnmatch import fnmatch
 import json
+import ast
 import configparser
 from pathlib3 import Path  # type: ignore
 from typing import Any, Dict, Optional, Union, List
-from .exceptions import FileNotFoundError, ParseError, TypeConversionError
+from .exceptions import ParseError, TypeConversionError#, FileNotFoundError
 import warnings
+from pydebugger.debug import debug
 
 ENVDOT_CONFIGFILE = ""
 
@@ -39,43 +41,18 @@ except ImportError:
     except ImportError:
         HAS_TOML = False
 
-LOG_LEVEL = os.getenv('LOG_LEVEL', 'CRITICAL')
+LOG_LEVEL_ENVDOT = os.getenv('LOG_LEVEL_ENVDOT', os.getenv('ENVDOT_LOG_LEVEL', 'CRITICAL'))
 tprint = None  # type: ignore
-SHOW_LOGGING = False
+SHOW_LOGGING_ENVDOT = False
 
-if (len(sys.argv) > 1 and any('--debug' == arg for arg in sys.argv)) or str(os.getenv('DOTENV_DEBUG', os.getenv('DEBUG', False))).lower() in ('1', 'true', 'ok', 'yes', 'on'):
-    print("🐞 Debug mode enabled")
-    os.environ["DEBUG"] = "1"
-    os.environ['LOGGING'] = "1"
-    os.environ.pop('NO_LOGGING', None)
-    os.environ['TRACEBACK'] = "1"
-    os.environ["LOGGING"] = "1"
-    LOG_LEVEL = "DEBUG"
-    SHOW_LOGGING = True
-    try:
-        from pydebugger import debug  # type: ignore
-    except Exception as e:
-        print("For better experience, please install 'pydebugger' [still in the development stage] (pip)")
-        def debug(**kwargs):  # type: ignore
-            if kwargs:
-                for i in kwargs:
-                    if not i == 'debug':
-                        print(f"[DEBUG (envdot)] [1]: {i} = {kwargs.get(i)}")
-else:
-    os.environ['NO_LOGGING'] = "1"
-    def debug(*args, **kwargs):  # type: ignore
-        pass
+# envdot/helpers.py
+import traceback
 
-try:
-    from richcolorlog import setup_logging, print_exception as tprint  # type: ignore
-    logger = setup_logging(
-        name="envdot",
-        level=LOG_LEVEL,
-        show=SHOW_LOGGING
-    )
-    HAS_RICHCOLORLOG=True
-except:
-    HAS_RICHCOLORLOG=False
+# Fallback functions
+def _fallback_print_exception(e):
+    print(traceback.format_exc())
+
+def _fallback_logger():
     import logging
 
     try:
@@ -83,11 +60,94 @@ except:
     except ImportError:
         from custom_logging import get_logger  # type: ignore
     
-    logger = get_logger('envdot', level=getattr(logging, LOG_LEVEL.upper(), logging.CRITICAL))
+    return get_logger('envdot', level=getattr(logging, LOG_LEVEL_ENVDOT.upper(), logging.CRITICAL))
 
-if not tprint:
-    def tprint(*args, **kwargs):
-        traceback.print_exc(*args, **kwargs)
+def _fallback_pydebugger(data=None, debug: Optional[Union[bool,int]] = False, **kwargs):  # type: ignore
+    os.environ['NO_LOGGING'] = "1"
+    if kwargs and str(os.getenv("DEBUG", debug)).lower() in ('1', 'yes', 'ok', 'true'):
+        for i in kwargs:
+            if not i == 'debug':
+                print(f"[DEBUG (setup_logging)]: {i} = {kwargs.get(i)}, TYPE: {type(kwargs.get(i))}")
+    elif data and str(os.getenv("DEBUG", debug)).lower() in ('1', 'yes', 'ok', 'true'):
+        print(f"[DEBUG (setup_logging)]: data = {data}, TYPE: {type(data)}")
+
+# Lazy import with fallback
+_richcolorlog_available = None
+_richcolorlog__print_exception_available = None
+_richcolorlog__print_exception_available = None
+_pydebugger_available = None
+
+def get_richcolorlog():
+    global _richcolorlog_available
+    if _richcolorlog_available is None:
+        try:
+            from richcolorlog import setup_logging  # type: ignore
+            _richcolorlog_available = setup_logging
+        except ImportError:
+            _richcolorlog_available = False
+    return _richcolorlog_available
+
+def get_richcolorlog_print_exception():
+    global _richcolorlog__print_exception_available
+    if _richcolorlog__print_exception_available is None:
+        try:
+            from richcolorlog import print_exception  # type: ignore
+            _richcolorlog__print_exception_available = print_exception
+        except ImportError:
+            _richcolorlog__print_exception_available = False
+    return _richcolorlog__print_exception_available
+
+def get_pydebugger():
+    global _pydebugger_available
+    if _pydebugger_available is None:
+        try:
+            from pydebugger import debug  # type: ignore
+            _pydebugger_available = debug
+        except ImportError:
+            _pydebugger_available = False
+    return _pydebugger_available
+
+
+def tprint(e):
+    rcl = get_richcolorlog()
+    if rcl:
+        return rcl.print_exception(e)
+    else:
+        return _fallback_print_exception(e)
+
+def get_logger():
+    rcl = get_richcolorlog()
+    if rcl:
+        return rcl.setup_logging(
+        name="envdot",
+        level=LOG_LEVEL_ENVDOT,
+        show=SHOW_LOGGING_ENVDOT
+    )
+        # print(f"os.getenv('LOGGING')   [ENVDOT]: {os.getenv('LOGGING')}")
+        # print(f"os.getenv('NO_LOGGING')[ENVDOT]: {os.getenv('NO_LOGGING')}")
+    else:
+        return _fallback_logger()
+
+def get_debug():
+    _debug = get_pydebugger()
+    if _debug == False:
+        return _fallback_pydebugger
+    return _debug
+        
+if (len(sys.argv) > 1 and any(arg in ('--debug', '--envdot-debug', '--debug-envdot') for arg in sys.argv)) or str(os.getenv('DOTENV_DEBUG', os.getenv('DEBUG', False))).lower() in ('1', 'true', 'ok', 'yes', 'on'):
+    print("🐞 Debug mode enabled")
+    os.environ["DEBUG"] = "1"
+    os.environ['LOGGING'] = "1"
+    os.environ.pop('NO_LOGGING', None)
+    os.environ['TRACEBACK'] = "1"
+    os.environ["LOGGING"] = "1"
+    LOG_LEVEL_ENVDOT = "DEBUG"
+    SHOW_LOGGING = True
+    debug = get_debug()
+else:
+    debug = _fallback_pydebugger
+
+logger = get_logger()
 
 class TypeDetector:
     """Automatic type detection and conversion"""
@@ -108,8 +168,11 @@ class TypeDetector:
         
         if value.lower() in ('true', 'yes', 'on', '1'):
             return True
-        if value.lower() in ('false', 'no', 'off', '0'):
+        elif value.lower() in ('false', 'no', 'off', '0'):
             return False
+        elif re.findall(",| ", value):
+            value = [i.strip() for i in re.split(",| ", value, re.I) if i]
+            return tuple(value)
         
         try:
             if '.' not in value and 'e' not in value.lower() and str(value).isdigit():
@@ -466,7 +529,7 @@ class DotEnv(metaclass=DotEnvMeta):
     def __init__(self, filepath: Optional[Union[str, Path]] = None, auto_load: bool = True, newone: bool = False):
         global ENVDOT_CONFIGFILE
         self._data: Dict[str, Any] = {}
-        self._filepath: Optional[Path] = None
+        self._filepath: Optional[Path] = filepath
         self._format: Optional[str] = None
         # self.newone = newone
 
@@ -481,6 +544,22 @@ class DotEnv(metaclass=DotEnvMeta):
         
         if auto_load and self._filepath and self._filepath.exists():
             self.load()
+    
+    @property
+    def configfile(self):
+        return self._filepath
+    
+    @property
+    def config_file(self):
+        return self._filepath
+    
+    @property
+    def configpath(self):
+        return self._filepath
+    
+    @property
+    def config_path(self):
+        return self._filepath
     
     # @staticmethod
     def _find_config_file(self) -> Optional[Path]:
@@ -612,9 +691,15 @@ class DotEnv(metaclass=DotEnvMeta):
         
         return search_directory(start_path)
     
-    def load(self, filepath: Optional[Union[str, Path]] = None, 
-         override: bool = True, apply_to_os: bool = True,
-         store_typed: bool = True, recursive: bool = True, newone: bool = False, os_overwrite: bool = False, **kwargs) -> 'DotEnv':
+    def load(self, 
+        filepath: Optional[Union[str, Path]] = None, 
+         override: bool = True, 
+         apply_to_os: bool = True,
+         store_typed: bool = True, recursive: bool = True, 
+         newone: bool = False, 
+         os_overwrite: bool = False, 
+         **kwargs
+    ) -> 'DotEnv':
         """Load environment variables from file"""
         debug(filepath = filepath)
         if filepath:
@@ -712,13 +797,15 @@ class DotEnv(metaclass=DotEnvMeta):
         
         # Compare
         if self.hash == current_hash:
+            logger.debug(f"HASH IS SAME")
             return True  # Files are NOT changed
         else:
+            logger.debug(f"HASH IS DIFFERENT !")
             # Update hash BYPASS __setattr__
             object.__setattr__(self, 'hash', current_hash)
             return False  # File CHANGED
     
-    def get(self, key: str, default: Any = None, cast_type: Optional[type] = None, reload: Optional[bool] = False) -> Any:
+    def get(self, key: str, default: Any = None, cast_type: Optional[type] = None, reload: Optional[bool] = False, with_os: Optional[bool]=True) -> Any:
         """Get environment variable with automatic type detection"""
 
         debug(self__filepath = self._filepath)
@@ -742,11 +829,12 @@ class DotEnv(metaclass=DotEnvMeta):
             if value is not None:
                 value = TypeDetector.auto_detect(value)
         
-        debug(default = default)
+        debug(default = default)  # type: ignore
         if value is None:
             return default
         
-        debug(cast_type = cast_type)
+        debug(cast_type = cast_type)  # type: ignore
+        # print(f"cast_type [1]: {cast_type}")
         if cast_type:
             try:
                 if cast_type == bool:
@@ -755,16 +843,47 @@ class DotEnv(metaclass=DotEnvMeta):
                     if isinstance(value, str):
                         return value.lower() in ('true', 'yes', 'on', '1')
                     return bool(value)
-                elif cast_type == list:
-                    value = [i.strip() for i in re.split(r"[, ]+", value) if i]
+                elif cast_type == dict and isinstance(value, dict):
                     return value
-                elif cast_type == tuple:
-                    value = [i.strip() for i in re.split(r"[, ]+", value) if i]
+                elif cast_type == dict and isinstance(value, str) and value.strip().startswith("{") and value.strip().endswith("}"):
+                    try:
+                        return json.loads(value)
+                    except:
+                        try:
+                            return ast.literal_eval(value)
+                        except:
+                            import json5
+                            return json5.loads(value)
+                elif cast_type == dict and isinstance(value, str) and ":" in value.strip():
+                    value = {
+                        a: b
+                        for part in re.split(r"\s+", value)
+                        if ":" in part
+                        for a, b in [part.split(":", 1)]
+                    }
+                elif cast_type in (list, tuple) and isinstance(value, (list, tuple)) and len(value) > 0 and ":" in value[0]:
+                    return {
+                        a: b
+                        for item in value
+                        if ":" in item
+                        for a, b in [item.split(":", 1)]
+                    }
+                elif cast_type in (list, tuple) and isinstance(value, str) and value.strip().startswith(("[", "(")) and value.strip().endswith(("]", ")")):
+                    try:
+                        return ast.literal_eval(value)
+                    except Exception as e:
+                        print("cast_type in (list, tuple), ERROR: {e]}")
+                elif cast_type in (list, tuple) and isinstance(value, str):
+                    value = [i.strip() for i in re.split(r"[, ]+", value) if i.strip()]
+                    return value
+                elif cast_type in (list, tuple) and isinstance(value, (list, tuple)):
                     return tuple(value)
                 return cast_type(value)
             except (ValueError, TypeError) as e:
+                if str(os.getenv('TRACEBACK', '0')).lower() in ['1', 'true', 'yes']:
+                    traceback.print_exc()
                 raise TypeConversionError(f"Cannot convert '{value}' to {cast_type.__name__}: {e}")
-        debug(value = value)
+        debug(value = value)  # type: ignore
         return value
     
     def get_config(self, *args, **kwargs):
@@ -783,6 +902,9 @@ class DotEnv(metaclass=DotEnvMeta):
         return self.set(*args, **kwargs)
 
     def setenv(self, *args, **kwargs):
+        return self.set(*args, **kwargs)
+
+    def write(self, *args, **kwargs):
         return self.set(*args, **kwargs)
 
     def getenv(self, *args, **kwargs):
@@ -836,6 +958,12 @@ class DotEnv(metaclass=DotEnvMeta):
         if all:
             return self.all()
         return self._data.copy()
+    
+    def _show(self, all = False):
+        return self.show(all)
+
+    def show_config(self, all = False):
+        return self.show(all)
 
     def as_dict(self, all = False):
         if all:
@@ -909,18 +1037,18 @@ class DotEnv(metaclass=DotEnvMeta):
             {'API_URL': 'https://api.example.com', 'DATABASE_URL': 'postgres://...'}
         """
 
-        pattern_lower = ""  # type: ignore
+        pattern_lower = ""  
 
-        debug(self__filepath = self._filepath)
+        debug(self__filepath = self._filepath)  # type: ignore
         if getattr(self, 'hash'):
-            debug(self_hash = self.hash)
+            debug(self_hash = self.hash)  # type: ignore
             
-        debug(reload = reload)
+        debug(reload = reload)  # type: ignore
 
         if reload or not self.check_file(self._filepath):
             self.load(self._filepath, apply_to_os=True)
             new_hash = Path(self._filepath).hash()
-            debug(new_hash = new_hash)
+            debug(new_hash = new_hash)  # type: ignore
             object.__setattr__(self, 'hash', new_hash)
             object.__setattr__(self, 'hash', new_hash)
 
@@ -929,12 +1057,16 @@ class DotEnv(metaclass=DotEnvMeta):
         # Prepare pattern based on case sensitivity
         if not case_sensitive:
             pattern_lower = pattern.lower()
+            debug(pattern_lower = pattern_lower)  # type: ignore
         
         data = os.environ.copy()
         data.update(self._data)
+        debug(data = data)  # type: ignore
 
         # for key, value in self._data.items():
         for key, value in data.items():  # type: ignore
+            debug(key = key)  # type: ignore
+            debug(value = value)  # type: ignore
             match = False
             search_key = key if case_sensitive else key.lower()
             search_pattern = pattern if case_sensitive else pattern_lower
@@ -945,26 +1077,31 @@ class DotEnv(metaclass=DotEnvMeta):
             if mode == 'wildcard':
                 # Unix shell-style wildcards: *, ?, [seq], [!seq]
                 match = fnmatch(search_key, search_pattern)
+                debug(match = match)  # type: ignore
                 
             elif mode == 'regex':
                 # Regular expression matching
                 try:
                     flags = 0 if case_sensitive else re.IGNORECASE
                     match = bool(re.search(search_pattern, key, flags=flags))
+                    debug(match = match)  # type: ignore
                 except re.error as e:
                     raise ValueError(f"Invalid regex pattern: {e}")
                     
             elif mode == 'contains':
                 # Substring matching
                 match = search_pattern in search_key
+                debug(match = match)  # type: ignore
                 
             elif mode == 'startswith':
                 # Prefix matching
                 match = search_key.startswith(search_pattern)
+                debug(match = match)  # type: ignore
                 
             elif mode == 'endswith':
                 # Suffix matching
                 match = search_key.endswith(search_pattern)
+                debug(match = match)  # type: ignore
                 
             else:
                 raise ValueError(f"Invalid mode: {mode}. Use 'wildcard', 'regex', 'contains', 'startswith', or 'endswith'")
@@ -996,15 +1133,62 @@ class DotEnv(metaclass=DotEnvMeta):
         results = self.find(pattern, mode=mode, return_dict=True, **kwargs)
         return list(results.keys())
     
-    def find_values(self, pattern: str, mode: str = 'wildcard', **kwargs) -> List[Any]:
-        """
-        Find keys matching pattern, return only values
+    # def find_values(self, pattern: str, mode: str = 'wildcard', **kwargs) -> List[Any]:
+    #     """
+    #     Find keys matching pattern, return only values
         
-        Returns:
-            List of matching values
+    #     Returns:
+    #         List of matching values
+    #     """
+    #     results = self.find(pattern, mode=mode, return_dict=True, **kwargs)
+    #     return list(results.values())
+
+    def find_values(self, 
+                  value_pattern: str, 
+                  mode: str = 'wildcard',
+                  case_sensitive: bool = True,
+                  return_dict: bool = True) -> Union[Dict[str, Any], List[tuple]]:
         """
-        results = self.find(pattern, mode=mode, return_dict=True, **kwargs)
-        return list(results.values())
+        Find configuration items matching a specific value pattern.
+        """
+        results = {}
+        pattern_lower = value_pattern.lower() if not case_sensitive else ""
+        
+        data = os.environ.copy()
+        data.update(self._data)
+
+        for key, val in data.items():
+            # Ensure we are dealing with strings for string-based operations like startswith/regex
+            str_val = str(val) 
+            search_val = str_val if case_sensitive else str_val.lower()
+            search_pattern = value_pattern if case_sensitive else pattern_lower
+
+            if not search_pattern:
+                return {}
+
+            match = False
+
+            if mode == 'wildcard':
+                match = fnmatch(search_val, search_pattern)
+            elif mode == 'regex':
+                try:
+                    flags = 0 if case_sensitive else re.IGNORECASE
+                    match = bool(re.search(search_pattern, str_val, flags=flags))
+                except re.error as e:
+                    raise ValueError(f"Invalid regex pattern: {e}")
+            elif mode == 'contains':
+                match = search_pattern in search_val
+            elif mode == 'startswith':
+                match = search_val.startswith(search_pattern)
+            elif mode == 'endswith':
+                match = search_val.endswith(search_pattern)
+            else:
+                raise ValueError(f"Invalid mode: {mode}")
+
+            if match:
+                results[key] = val
+
+        return results if return_dict else list(results.items())
     
     def filter(self, predicate) -> Dict[str, Any]:
         """
@@ -1135,32 +1319,47 @@ class DotEnv(metaclass=DotEnvMeta):
 
 _global_env = DotEnv(auto_load=False)
 
-
-def load_env(filepath: Optional[Union[str, Path]] = None, 
-             apply_to_os=True,
-             auto_replace_getenv: bool = True,
-             patch_os: bool = True,
-             debugging: bool = False,
-             **kwargs) -> DotEnv:
+def load_env(
+    filepath: Optional[Union[str, Path]] = None, 
+    auto_replace_getenv: bool = True,
+    apply_to_os=True,
+    patch_os: bool = True,
+    debugging: bool = False,
+    **kwargs
+) -> DotEnv:
 
     """Convenience function to load environment variables"""
+
+    # print(f"auto_replace_getenv [0]: {auto_replace_getenv}")
+
     if debugging:
         os.environ['DEBUG'] = '1'
-        os.environ['LOG_LEVEL'] = 'DEBUG'
+        os.environ['LOG_LEVEL_ENVDOT'] = 'DEBUG'
         os.environ['LOGGING'] = '1'
         os.environ.pop('NO_LOGGING', None)
 
     global _global_env
 
+    # try:
     debug(_global_env = _global_env)
-    
     debug(auto_replace_getenv = auto_replace_getenv)
     debug(patch_os = patch_os)
+    # except:
+    #     from pydebugger.debug import debug
+    #     try:
+    #         debug(_global_env = _global_env)
+    #         debug(auto_replace_getenv = auto_replace_getenv)
+    #         debug(patch_os = patch_os)
+    #     except:
+    #         pass
 
     if auto_replace_getenv:
         from .helpers import replace_os_getenv
         replace_os_getenv()
-    
+    else:
+        os.getenv = _global_env.get
+        os.environ = _global_env._data
+
     if patch_os:
         from .helpers import patch_os_module
         patch_os_module()
@@ -1172,6 +1371,16 @@ def load_env(filepath: Optional[Union[str, Path]] = None,
     kwargs.pop('reload', None)
     _global_env.load(apply_to_os=apply_to_os, **kwargs)
     # _global_env.load(**kwargs)
+
+    # print(f"auto_replace_getenv [1]: {auto_replace_getenv}")
+    if auto_replace_getenv:
+        from .helpers import replace_os_getenv
+        replace_os_getenv()
+
+    else:
+        os.getenv = _global_env.get
+        os.environ = _global_env._data
+    
     return _global_env
 
 def Env(*args, **kwargs):
@@ -1181,20 +1390,36 @@ def show():
     global _global_env
     return _global_env.show()
 
+# def configfile():
+#     global _global_env
+#     return _global_env._filepath
+
 def data():
     global _global_env
     return _global_env.show()
 
-def get_env(key: str, default: Any = None, cast_type: Optional[type] = None) -> Any:
-    """Convenience function to get environment variable"""
-    return _global_env.get(key, default, cast_type)
+# def get_env(key: str, default: Any = None, cast_type: Optional[type] = None) -> Any:
+#     """Convenience function to get environment variable"""
+#     global _global_env
+#     return _global_env.get(key, default, cast_type)
 
-def set_env(key: str, value: Optional[Any] = None, **kwargs) -> DotEnv:
+def get_env(key: str, default: Any = None, cast_type: Optional[type] = None) -> Any:
+    """Convenience function to get environment variable with auto-reload"""
+    global _global_env
+    # This automatically invokes the file-hash check on every call![cite: 1]
+    return _global_env.get(key, default=default, cast_type=cast_type)
+
+def set_env(key: str, value: Optional[Any] = None, option : Optional[Any] = None, **kwargs) -> DotEnv:
     """Convenience function to set environment variable"""
     if isinstance(key, dict) and not value:
         _key = list(key.keys())[0]
         _value = key.get(_key)
         return _global_env.set(_key, _value, **kwargs)    
+    elif option:
+        value1 = value
+        value = option
+        option = value1
+        return _global_env.set(f"{str(key).upper()}_{str(option).upper()}", value, **kwargs)    
     return _global_env.set(key, value, **kwargs)
 
 
