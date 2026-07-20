@@ -21,7 +21,6 @@ from pathlib3 import Path  # type: ignore
 from typing import Any, Dict, Optional, Union, List
 from .exceptions import ParseError, TypeConversionError#, FileNotFoundError
 import warnings
-from pydebugger.debug import debug
 
 ENVDOT_CONFIGFILE = ""
 
@@ -64,11 +63,11 @@ def _fallback_logger():
 
 def _fallback_pydebugger(data=None, debug: Optional[Union[bool,int]] = False, **kwargs):  # type: ignore
     os.environ['NO_LOGGING'] = "1"
-    if kwargs and str(os.getenv("DEBUG", debug)).lower() in ('1', 'yes', 'ok', 'true'):
+    if kwargs and str(os.getenv("PYDEBUGGER", debug)).lower() in ('1', 'yes', 'ok', 'true'):
         for i in kwargs:
             if not i == 'debug':
                 print(f"[DEBUG (setup_logging)]: {i} = {kwargs.get(i)}, TYPE: {type(kwargs.get(i))}")
-    elif data and str(os.getenv("DEBUG", debug)).lower() in ('1', 'yes', 'ok', 'true'):
+    elif data and str(os.getenv("PYDEBUGGER", debug)).lower() in ('1', 'yes', 'ok', 'true'):
         print(f"[DEBUG (setup_logging)]: data = {data}, TYPE: {type(data)}")
 
 # Lazy import with fallback
@@ -97,16 +96,6 @@ def get_richcolorlog_print_exception():
             _richcolorlog__print_exception_available = False
     return _richcolorlog__print_exception_available
 
-def get_pydebugger():
-    global _pydebugger_available
-    if _pydebugger_available is None:
-        try:
-            from pydebugger import debug  # type: ignore
-            _pydebugger_available = debug
-        except ImportError:
-            _pydebugger_available = False
-    return _pydebugger_available
-
 
 def tprint(e):
     rcl = get_richcolorlog()
@@ -128,24 +117,43 @@ def get_logger():
     else:
         return _fallback_logger()
 
+def get_pydebugger():
+    global _pydebugger_available
+    print(f"_pydebugger_available is None and ((len(sys.argv) > 1 and any(arg in ('--debug', '--envdot-debug', '--debug-envdot') for arg in sys.argv[1:])) or str(os.getenv('DOTENV_DEBUG', os.getenv('DEBUG', False))).lower() in ('1', 'true', 'ok', 'yes', 'on')): {_pydebugger_available is None and ((len(sys.argv) > 1 and any(arg in ('--debug', '--envdot-debug', '--debug-envdot') for arg in sys.argv[1:])) or str(os.getenv('DOTENV_DEBUG', os.getenv('DEBUG', False))).lower() in ('1', 'true', 'ok', 'yes', 'on'))}")
+    if _pydebugger_available is None and ((len(sys.argv) > 1 and any(arg in ('--debug', '--envdot-debug', '--debug-envdot') for arg in sys.argv[1:])) or str(os.getenv('DOTENV_DEBUG', os.getenv('DEBUG', False))).lower() in ('1', 'true', 'ok', 'yes', 'on')):
+        try:
+            from pydebugger import debug  # type: ignore
+            _pydebugger_available = debug
+        except ImportError:
+            _pydebugger_available = False
+    return _pydebugger_available
+
 def get_debug():
     _debug = get_pydebugger()
     if _debug == False:
         return _fallback_pydebugger
     return _debug
-        
-if (len(sys.argv) > 1 and any(arg in ('--debug', '--envdot-debug', '--debug-envdot') for arg in sys.argv)) or str(os.getenv('DOTENV_DEBUG', os.getenv('DEBUG', False))).lower() in ('1', 'true', 'ok', 'yes', 'on'):
+
+# print(f"(len(sys.argv) > 1 and any(arg in ('--debug', '--envdot-debug', '--debug-envdot') for arg in sys.argv[1:])) or str(os.getenv('DOTENV_DEBUG', os.getenv('DEBUG', False))).lower() in ('1', 'true', 'ok', 'yes', 'on'): {(len(sys.argv) > 1 and any(arg in ('--debug', '--envdot-debug', '--debug-envdot') for arg in sys.argv[1:])) or str(os.getenv('DOTENV_DEBUG', os.getenv('DEBUG', False))).lower() in ('1', 'true', 'ok', 'yes', 'on')}")
+
+if (len(sys.argv) > 1 and any(arg in ('--debug', '--envdot-debug', '--debug-envdot') for arg in sys.argv[1:])) or str(os.getenv('DOTENV_DEBUG', os.getenv('DEBUG', False))).lower() in ('1', 'true', 'ok', 'yes', 'on'):
     print("🐞 Debug mode enabled")
-    os.environ["DEBUG"] = "1"
+    # os.environ["DEBUG"] = "1"
     os.environ['LOGGING'] = "1"
     os.environ.pop('NO_LOGGING', None)
     os.environ['TRACEBACK'] = "1"
-    os.environ["LOGGING"] = "1"
     LOG_LEVEL_ENVDOT = "DEBUG"
-    SHOW_LOGGING = True
+    SHOW_LOGGING = SHOW_LOGGING_ENVDOT
     debug = get_debug()
 else:
-    debug = _fallback_pydebugger
+    # debug = _fallback_pydebugger
+    os.environ.pop("DEBUG", None)
+    os.environ.pop("PYDEBUGGER", None)
+    def debug(*args, **kwargs):
+        return
+
+# print(f"LOG_LEVEL_ENVDOT: {LOG_LEVEL_ENVDOT}")
+# print(f"SHOW_LOGGING_ENVDOT: {SHOW_LOGGING_ENVDOT}")
 
 logger = get_logger()
 
