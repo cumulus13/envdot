@@ -57,7 +57,7 @@ classifiers = [
     "Topic :: System :: Systems Administration",
     "Topic :: Utilities"
 ]
-dependencies = ["version_get"]
+dependencies = ["version_get", "pathlib3"]
 
 [project.optional-dependencies]
 full = [
@@ -65,7 +65,8 @@ full = [
     "tomli>=2.0.1;python_version<'3.11'",
     "tomli-w>=1.0.0",
     "json5>=0.9.14",
-    "richcolorlog>=0.1.0"
+    "richcolorlog>=0.1.0",
+    "pathlib3"
 ]
 yaml = ["pyyaml>=6.0.1"]
 toml = [

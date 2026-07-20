@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "envdot"
-version = "1.0.33"
+version = "1.0.34"
 description = "Enhanced environment variable management with multi-format support (.env, JSON, YAML, INI, TOML)"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -47,6 +47,7 @@ classifiers = [
 ]
 dependencies = [
     "version_get",
+    "pathlib3",
 ]
 
 [project.optional-dependencies]
@@ -56,6 +57,7 @@ full = [
     "tomli-w>=1.0.0",
     "json5>=0.9.14",
     "richcolorlog>=0.1.0",
+    "pathlib3",
 ]
 yaml = [
     "pyyaml>=6.0.1",
