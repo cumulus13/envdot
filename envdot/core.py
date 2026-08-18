@@ -82,7 +82,7 @@ def get_richcolorlog():
         try:
             from richcolorlog import setup_logging  # type: ignore
             _richcolorlog_available = setup_logging
-        except ImportError:
+        except:
             _richcolorlog_available = False
     return _richcolorlog_available
 
@@ -107,7 +107,7 @@ def tprint(e):
 def get_logger():
     rcl = get_richcolorlog()
     if rcl:
-        return rcl.setup_logging(
+        return rcl(
         name="envdot",
         level=LOG_LEVEL_ENVDOT,
         show=SHOW_LOGGING_ENVDOT
@@ -136,15 +136,16 @@ def get_debug():
 
 # print(f"(len(sys.argv) > 1 and any(arg in ('--debug', '--envdot-debug', '--debug-envdot') for arg in sys.argv[1:])) or str(os.getenv('DOTENV_DEBUG', os.getenv('DEBUG', False))).lower() in ('1', 'true', 'ok', 'yes', 'on'): {(len(sys.argv) > 1 and any(arg in ('--debug', '--envdot-debug', '--debug-envdot') for arg in sys.argv[1:])) or str(os.getenv('DOTENV_DEBUG', os.getenv('DEBUG', False))).lower() in ('1', 'true', 'ok', 'yes', 'on')}")
 
-if (len(sys.argv) > 1 and any(arg in ('--debug', '--envdot-debug', '--debug-envdot') for arg in sys.argv[1:])) or str(os.getenv('DOTENV_DEBUG', os.getenv('DEBUG', False))).lower() in ('1', 'true', 'ok', 'yes', 'on'):
-    print("🐞 Debug mode enabled")
+if (len(sys.argv) > 1 and any(arg in ('--debug', '--envdot-debug', '--debug-envdot') for arg in sys.argv[1:])) or str(os.getenv('DOTENV_DEBUG', "0")).lower() in ('1', 'true', 'ok', 'yes', 'on'):
+    print("🐞 [ENVDOT] Debug mode enabled")
     # os.environ["DEBUG"] = "1"
     os.environ['LOGGING'] = "1"
     os.environ.pop('NO_LOGGING', None)
     os.environ['TRACEBACK'] = "1"
     LOG_LEVEL_ENVDOT = "DEBUG"
     SHOW_LOGGING = SHOW_LOGGING_ENVDOT
-    debug = get_debug()
+    # debug = get_debug()
+    from pydebugger.debug import debug
 else:
     # debug = _fallback_pydebugger
     os.environ.pop("DEBUG", None)
