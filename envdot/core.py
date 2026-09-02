@@ -814,7 +814,7 @@ class DotEnv(metaclass=DotEnvMeta):
             object.__setattr__(self, 'hash', current_hash)
             return False  # File CHANGED
     
-    def get(self, key: str, default: Any = None, cast_type: Optional[type] = None, reload: Optional[bool] = False, with_os: Optional[bool]=True) -> Any:
+    def get(self, key: str, default: Any = None, cast_type: Optional[type] = None, reload: Optional[bool] = True, with_os: Optional[bool]=True) -> Any:
         """Get environment variable with automatic type detection"""
 
         debug(self__filepath = self._filepath)
@@ -1349,18 +1349,9 @@ def load_env(
 
     global _global_env
 
-    # try:
     debug(_global_env = _global_env)
     debug(auto_replace_getenv = auto_replace_getenv)
     debug(patch_os = patch_os)
-    # except:
-    #     from pydebugger.debug import debug
-    #     try:
-    #         debug(_global_env = _global_env)
-    #         debug(auto_replace_getenv = auto_replace_getenv)
-    #         debug(patch_os = patch_os)
-    #     except:
-    #         pass
 
     if auto_replace_getenv:
         from .helpers import replace_os_getenv

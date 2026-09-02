@@ -127,7 +127,8 @@ T = TypeVar('T')
 
 # Save original os.getenv IMMEDIATELY when module loads
 _original_getenv = os.getenv if not hasattr(os, '_env_dot_original_getenv') else os._env_dot_original_getenv
-os._env_dot_original_getenv = _original_getenv
+
+os._env_dot_original_getenv = _original_getenv  # type: ignore
 
 
 def getenv_typed(key: str, default: Any = None, cast_type: Optional[type] = None) -> Any:
@@ -157,8 +158,8 @@ def getenv_typed(key: str, default: Any = None, cast_type: Optional[type] = None
     # ALWAYS use the saved original, never os.getenv
 
     value = os._env_dot_original_getenv(key)  # type: ignore
-    # logger.debug(f"key   [x]: {key}")  # type: ignore
-    # logger.debug(f"value [x]: {value}")  # type: ignore
+    # logger.debug(f"key   [x]: {key}")  
+    # logger.debug(f"value [x]: {value}")  
     # debug(key = key)
     # debug(value = value)
     
