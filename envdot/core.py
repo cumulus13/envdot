@@ -544,38 +544,6 @@ class FileHandler:
             tomli_w.dump(data, f)
 
 
-# class DotEnvMeta(type):
-#     """Metaclass to enable attribute-style access and automatic saving"""
-    
-#     def __call__(cls, *args, **kwargs):
-#         instance = super().__call__(*args, **kwargs)
-#         return instance
-    
-#     def __getattribute__(cls, name):
-#         try:
-#             return super().__getattribute__(name)
-#         except AttributeError:
-#             global _global_env
-#             if hasattr(_global_env, name):
-#                 return getattr(_global_env, name)
-#             raise
-    
-#     def __setattr__(cls, name, value):
-#         if name.startswith('_') or name in cls.__dict__:
-#             super().__setattr__(name, value)
-#         else:
-#             global _global_env
-#             if hasattr(_global_env, name):
-#                 setattr(_global_env, name, value)
-#             else:
-#                 _global_env.__set__(name, value)
-    
-#     def __getattr__(cls, name):
-#         global _global_env
-#         if hasattr(_global_env, name):
-#             return getattr(_global_env, name)
-#         raise AttributeError(f"'{cls.__name__}' object has no attribute '{name}'")
-
 class DotEnvMeta(type):
     """Metaclass to enable attribute-style access and automatic saving"""
     
@@ -791,6 +759,18 @@ class DotEnv(metaclass=DotEnvMeta):
             return None
         
         return search_directory(start_path)
+
+    def ensure_filepath(self, **kwargs):
+        
+        if not self._filepath:
+            self._filepath = self.find_settings_recursive(
+                kwargs.get('start_path', None),
+                kwargs.get('max_depth', 0),
+                kwargs.get('filename', ".env"),
+                kwargs.get('exceptions', ['node_modules', 'venv', '__pycache__']),
+            )
+        return self._filepath
+
     
     def load(self, 
         filepath: Optional[Union[str, Path]] = None, 
@@ -803,17 +783,14 @@ class DotEnv(metaclass=DotEnvMeta):
     ) -> 'DotEnv':
         """Load environment variables from file"""
         debug(filepath = filepath)
+
         if filepath:
             self._filepath = Path(filepath)
-        
-        if not self._filepath:
-            self._filepath = self.find_settings_recursive(
-                kwargs.get('start_path', None),
-                kwargs.get('max_depth', 0),
-                kwargs.get('filename', ".env"),
-                kwargs.get('exceptions', ['node_modules', 'venv', '__pycache__']),
-            )
+        else:
+            filepath = self._filepath
 
+        self._filepath = self.ensure_filepath()
+        
         debug(self__filepath = self._filepath)
         debug(newone = newone)
         debug(self_newone = self.newone)
@@ -894,9 +871,14 @@ class DotEnv(metaclass=DotEnvMeta):
         if self._filepath and self._filepath.exists():
             object.__setattr__(self, 'hash', Path(self._filepath).hash())
 
+        # print(f"self._raw: {self._raw}")
+        # print(f"self.data: {self.data}")
+        # print(f"self._data: {self._data}")
+        # print(f"raw_data: {raw_data}")
+
         return self
 
-    def check_file(self, configfile):
+    def check_file(self):
         """
         Check if the config file has changed since the last load, using a
         content hash comparison.
@@ -916,6 +898,8 @@ class DotEnv(metaclass=DotEnvMeta):
         that appeared after the fact to be picked up, call `load_env()` /
         `.load()` again explicitly, or pass `reload=True` to `.get()`.
         """
+        configfile = self.ensure_filepath()
+
         if not configfile:
             return True  # No file is being tracked - nothing to reload from.
 
@@ -952,10 +936,12 @@ class DotEnv(metaclass=DotEnvMeta):
         state of the file on disk rather than a stale snapshot from
         whenever it happened to last be loaded.
         """
-        if not self.check_file(self._filepath):
-            self.load(self._filepath, apply_to_os=True)
+        check = self.check_file()
+        # print(f"check: {check}")
+        if not check:
+            self.load(self._filepath, apply_to_os=True, os_overwrite=True)
 
-    def get(self, key: str, default: Any = None, cast_type: Optional[type] = None, reload: Optional[bool] = None, with_os: Optional[bool] = True) -> Any:
+    def get(self, key: str, default: Any = None, cast_type: Optional[type] = None, reload: Optional[bool] = True, with_os: Optional[bool] = True) -> Any:
         """
         Get environment variable with automatic type detection.
 
@@ -982,9 +968,11 @@ class DotEnv(metaclass=DotEnvMeta):
             
         debug(reload = reload)
 
+        # if reload:
+        #     self.load(self._filepath, apply_to_os=True)
+        # elif reload is None:
+        # print(f"reload: {reload}")
         if reload:
-            self.load(self._filepath, apply_to_os=True)
-        elif reload is None:
             self._auto_reload()
         # reload=False: skip the file check/reload entirely for this call
 
@@ -992,7 +980,9 @@ class DotEnv(metaclass=DotEnvMeta):
         # None), the file is never auto-discovered here on purpose - see
         # check_file()'s docstring for why. Call load_env()/.load() again,
         # or pass reload=True, if a file appeared after construction.
+        # print(f"self._raw [1]: {self._raw}")
         raw_value = self._raw.get(key)
+        # print(f"raw_value [1]: {raw_value}")
         value = self._data.get(key)
 
         if with_os:
@@ -1226,7 +1216,7 @@ class DotEnv(metaclass=DotEnvMeta):
             
         debug(reload = reload)  # type: ignore
 
-        if reload or not self.check_file(self._filepath):
+        if reload or not self.check_file():
             self.load(self._filepath, apply_to_os=True)
 
         results = {}
@@ -1638,3 +1628,15 @@ def filter_env(predicate) -> Dict[str, Any]:
 def search_env(pattern: str, value: Optional[str] = None, mode: str = 'wildcard', **kwargs) -> Dict[str, Any]:
     global _global_env
     return _global_env.search(pattern, value, mode, **kwargs)
+
+def check_file():
+    # _global_env = DotEnv(auto_load=False)
+    check =_global_env.check_file()
+    return check
+
+def load(*args, **kwargs):
+    # _global_env = DotEnv(auto_load=False)
+    check =_global_env.load(*args, **kwargs)
+    return check
+
+_filepath = _global_env._filepath

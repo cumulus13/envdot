@@ -159,7 +159,21 @@ def getenv_typed(key: str, default: Any = None, cast_type: Optional[type] = None
     """
     # ALWAYS use the saved original, never os.getenv
 
+    import envdot.core as core_module
+
+    check = core_module.check_file()
+    # print(f"check [helper]: {check}")
+    if not check:
+        core_module.load(apply_to_os=True, os_overwrite=True)
+
+    global _original_getenv
+
+    _original_getenv = os.getenv if not hasattr(os, '_env_dot_original_getenv') else os._env_dot_original_getenv
+
+    os._env_dot_original_getenv = _original_getenv  # type: ignore
+
     value = os._env_dot_original_getenv(key)  # type: ignore
+    # print(f"value: {value}")
 
     if value is None:
         return default
