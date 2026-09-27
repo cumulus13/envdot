@@ -13,8 +13,10 @@ import re
 # import fnmatch
 from typing import Any, Optional, TypeVar, Union, List, Dict
 from .core import TypeDetector, get_logger
+from .exceptions import TypeConversionError
 import ast
 import json
+import traceback
 # import traceback
 # import sys
 
@@ -158,66 +160,25 @@ def getenv_typed(key: str, default: Any = None, cast_type: Optional[type] = None
     # ALWAYS use the saved original, never os.getenv
 
     value = os._env_dot_original_getenv(key)  # type: ignore
-    # logger.debug(f"key   [x]: {key}")  
-    # logger.debug(f"value [x]: {value}")  
-    # debug(key = key)
-    # debug(value = value)
-    
+
     if value is None:
         return default
     
-    # Auto-detect type
+    # Auto-detect type (never mangles the raw string - see TypeDetector.auto_detect)
     typed_value = TypeDetector.auto_detect(value)
     
-    # Apply explicit type casting if requested
+    # Apply explicit type casting if requested - cast from the ORIGINAL raw
+    # string (`value`), not from `typed_value`, so cast_type is reliable
+    # even in ambiguous cases and never gets undermined by auto-detection.
     if cast_type:
         try:
-            if cast_type == bool:
-                if isinstance(typed_value, bool):
-                    return typed_value
-                if isinstance(typed_value, str):
-                    return typed_value.lower() in ('true', 'yes', 'on', '1')
-
-                return bool(typed_value)
-            elif cast_type == dict and isinstance(value, dict):
-                return value
-            elif cast_type == dict and isinstance(value, str) and value.strip().startswith("{") and value.strip().endswith("}"):
-                try:
-                    return json.loads(value)
-                except:
-                    try:
-                        return ast.literal_eval(value)
-                    except:
-                        import json5
-                        return json5.loads(value)
-            elif cast_type == dict and isinstance(value, str) and ":" in value.strip():
-                value = {
-                    a: b
-                    for part in re.split(r"\s+", value)
-                    if ":" in part
-                    for a, b in [part.split(":", 1)]
-                }
-            elif cast_type in (list, tuple) and isinstance(value, (list, tuple)) and len(value) > 0 and ":" in value[0]:
-                return {
-                    a: b
-                    for item in value
-                    if ":" in item
-                    for a, b in [item.split(":", 1)]
-                }
-            elif cast_type in (list, tuple) and isinstance(value, str) and value.strip().startswith(("[", "(")) and value.strip().endswith(("]", ")")):
-                try:
-                    return ast.literal_eval(value)
-                except Exception as e:
-                    print("cast_type in (list, tuple), ERROR: {e]}")
-            elif cast_type in (list, tuple) and isinstance(value, str):
-                # print("5"*100)
-                return value
-            elif cast_type in (list, tuple) and isinstance(value, (list, tuple)):
-                return tuple(value)
-            return cast_type(value)
-        except (ValueError, TypeError):
-            # If casting fails, return default or original value
-            return default if default is not None else typed_value
+            return TypeDetector.cast(value, cast_type)
+        except TypeConversionError:
+            raise
+        except Exception as e:
+            if str(os._env_dot_original_getenv('TRACEBACK', '0')).lower() in ('1', 'true', 'yes'):  # type: ignore
+                traceback.print_exc()
+            raise TypeConversionError(f"Cannot convert '{value}' to {cast_type.__name__}: {e}")
     
     return typed_value
 

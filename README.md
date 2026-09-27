@@ -24,6 +24,33 @@ Enhanced environment variable management for Python with multi-format support an
 
 ---
 
+## 🩹 1.0.37 bug fixes
+
+Several users reported `cast_type` not working reliably and stale values
+after config changes. Both are fixed as of **1.0.37**:
+
+- Auto-detection no longer silently splits any string containing a space
+  or comma into a tuple. A value like `APP_NAME=My Application` now stays
+  the plain string `'My Application'` instead of becoming
+  `('My', 'Application')` — this was the main reason `cast_type` seemed
+  "useless": the original string was already gone by the time the cast
+  ran. Lists/tuples/dicts are now only ever produced via an explicit
+  `cast_type=list` / `tuple` / `dict`.
+- `cast_type` now always casts from the original raw string rather than
+  from a value auto-detection already converted, so it behaves
+  predictably even in ambiguous cases (e.g. `RETRY_COUNT=1`).
+- `get()` no longer force-reparses the whole config file on every single
+  call — it now reloads automatically only when the tracked file's
+  content actually changed, and separately picks up direct
+  `os.environ[key] = ...` changes. See
+  [Auto-Reload](#8-auto-reload-config-file--os-env-changes).
+
+See the [Type Detection Rules](#type-detection-rules) and
+[Explicit Type Casting](#explicit-type-casting) sections below for the
+current behavior.
+
+---
+
 ## Installation
 
 ```bash
@@ -311,13 +338,40 @@ env.get('EMPTY_VALUE') # Returns: None
 # env.get same as os.getenv
 ```
 
+> ⚠️ Auto-detection only ever produces `bool`, `None`, `int`, `float`, or
+> `str`. A value like `ALLOWED_HOSTS=localhost, 127.0.0.1` is **kept as
+> the plain string** `'localhost, 127.0.0.1'` — it is never silently
+> split into a list/tuple just because it contains spaces or commas.
+> Ask for `cast_type=list` (or `tuple`) explicitly if that's what you want
+> (see below). This used to not be the case in versions before 1.0.37,
+> where any value containing a space or comma was auto-split into a
+> tuple — this broke plain strings such as `APP_NAME=My Application`
+> and made `cast_type` ineffective, since the original string was
+> already gone by the time the cast ran. That bug is fixed as of 1.0.37.
+
 ### Explicit Type Casting
+
+`cast_type` always casts from the **original, untouched string** value in
+the config file / `os.environ` — never from a value that auto-detection
+already converted. This keeps casting predictable even in ambiguous cases,
+e.g. `RETRY_COUNT=1` auto-detects as `int` `1` (not `bool`), but you can
+still force it either way explicitly:
 
 ```python
 # Force a specific type
 version = env.get('VERSION', cast_type=str)
 port = env.get('PORT', cast_type=int)
-enabled = env.get('ENABLED', cast_type=bool)
+enabled = env.get('RETRY_COUNT', cast_type=bool)   # '1'/'yes'/'on'/'true' -> True
+
+# Cast to list / tuple - splits on commas/whitespace, or parses a
+# "[...]" / "(...)" literal
+hosts = env.get('ALLOWED_HOSTS', cast_type=list)
+# "localhost, 127.0.0.1, example.com" -> ['localhost', '127.0.0.1', 'example.com']
+
+# Cast to dict - parses a "{...}" JSON/JSON5-ish literal, or
+# whitespace-separated "key:value" pairs
+opts = env.get('SETTINGS_MAP', cast_type=dict)
+# "a:1 b:2 c:3" -> {'a': '1', 'b': '2', 'c': '3'}
 ```
 
 ### Method Chaining
@@ -387,13 +441,26 @@ env.delete('TEMP_KEY', remove_from_os=True)
 
 ## Type Detection Rules
 
-The package uses the following rules for automatic type detection:
+The package uses the following rules for **automatic** type detection
+(i.e. what you get back from `.get(key)` with no `cast_type`):
 
-- **Boolean**: `true`, `yes`, `on`, `1` → `True` | `false`, `no`, `off`, `0` → `False`
+- **Boolean**: `true`, `yes`, `on` → `True` | `false`, `no`, `off` → `False`
 - **None**: `none`, `null`, empty string → `None`
-- **Integer**: Numbers without decimal point → `int`
-- **Float**: Numbers with decimal point → `float`
-- **String**: Everything else → `str`
+- **Integer**: `1`, `0`, `42`, `-7`, ... → `int`
+- **Float**: `30.5`, `1e10`, ... → `float`
+- **String**: Everything else → `str` (including things like
+  `"localhost, 127.0.0.1"` or `"My Application"` - a space or comma in
+  the value does **not** turn it into a list/tuple automatically)
+
+> Note: `1`/`0` are always auto-detected as `int`, not `bool` - they're
+> genuinely ambiguous (is `RETRY=1` a count or a flag?), so envdot
+> resolves that ambiguity toward the more common case (a number) and
+> lets you opt into a boolean explicitly with `cast_type=bool`, which
+> treats `1`/`0`/`true`/`false`/`yes`/`no`/`on`/`off` all as booleans.
+
+List, tuple, and dict values are **never** produced automatically - only
+via an explicit `cast_type=list` / `cast_type=tuple` / `cast_type=dict`
+(see [Explicit Type Casting](#explicit-type-casting)).
 
 ## 📝 Supported Formats
 
@@ -721,6 +788,77 @@ env.find_settings_recursive(
 )
 ```
 
+### 8. Auto-Reload (config file & OS env changes)
+
+`get()` (and `get_env()`) accept a `reload` argument that controls whether
+the backing config file gets re-checked:
+
+```python
+from envdot import get_env
+
+get_env('PORT')                 # reload=None (default): "smart" - only
+                                 # re-reads the file if its content
+                                 # actually changed since the last read
+get_env('PORT', reload=True)    # always force a full re-read of the file
+get_env('PORT', reload=False)   # never check/re-read the file this call
+```
+
+This replaces the old behavior of unconditionally re-parsing the entire
+config file on every single `get()` call, while still guaranteeing you
+never get a stale value after the file changes on disk.
+
+This "smart" check isn't limited to `get()` - **every** way of reading
+data from a `DotEnv` picks up a file change automatically: `show()`,
+`all()`, `as_dict()`, `data()`, `keys()`, attribute access
+(`env.SOME_KEY`), `in` checks (`'KEY' in env`), `find_values()`,
+`filter()`, and `search()` all re-check the file first, the same way
+`get()` does. `find()` already did this. There's no separate `reload`
+flag on these (only `get()` exposes one, for the rare case you want to
+force or skip the check on a single call) - they just always stay in
+sync automatically:
+
+```python
+from envdot import load_env
+
+conf = load_env('config.ini')
+conf.show()          # {'TAG_NAME': None, ...}
+
+# ...edit config.ini on disk, e.g. TAG_NAME = TEST...
+
+conf.show()           # picks up the change: {'TAG_NAME': 'TEST', ...}
+conf.TAG_NAME          # 'TEST'
+'TAG_NAME' in conf     # True
+```
+
+> Note: this only re-checks a file that's already being tracked (i.e. one
+> `load_env()`/`DotEnv(...)` found or was given at construction time). A
+> config file that didn't exist yet when your app started is **not**
+> auto-discovered later on its own — call `load_env()` / `.load()` again
+> (or pass `reload=True`) once it exists. An earlier version of this fix
+> tried to auto-discover such a file from inside `get()`, but combined
+> with `load(override=True)` that could silently wipe values you'd set
+> manually with `.set()`/`set_env()` if an unrelated config file happened
+> to exist in the current directory — so that part was reverted.
+
+Independently of `reload`, if something sets `os.environ[key]` directly
+(bypassing envdot) *after* envdot itself wrote that key to `os.environ`,
+`get()` picks up the new value:
+
+```python
+import os
+from envdot import load_env, get_env
+
+load_env()                      # PORT=8080 from .env
+os.environ['PORT'] = '9999'     # changed directly, outside envdot
+get_env('PORT')                 # -> 9999
+```
+
+A pre-existing `os.environ` value that envdot never wrote itself (e.g.
+left over from another `DotEnv` instance, or set before `load_env()` ran)
+is *not* treated this way - it won't silently override a value envdot
+just loaded from its own config file. Pass `with_os=False` to disable
+this OS-environment sync entirely for a call.
+
 ---
 
 
@@ -734,8 +872,11 @@ Initialize DotEnv instance.
 #### `load(filepath=None, override=True, apply_to_os=True)`
 Load environment variables from file.
 
-#### `get(key, default=None, cast_type=None)`
-Get environment variable with automatic type detection.
+#### `get(key, default=None, cast_type=None, reload=None, with_os=True)`
+Get environment variable with automatic type detection. `reload=None`
+(default) re-reads the config file only if it changed; `True`/`False`
+force or skip the check. `with_os=True` picks up `os.environ[key]`
+changes made outside envdot (see [Auto-Reload](#8-auto-reload-config-file--os-env-changes)).
 
 #### `set(key, value, apply_to_os=True)`
 Set environment variable.

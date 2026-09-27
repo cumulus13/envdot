@@ -19,7 +19,7 @@ import ast
 import configparser
 from pathlib3 import Path  # type: ignore
 from typing import Any, Dict, Optional, Union, List
-from .exceptions import ParseError, TypeConversionError#, FileNotFoundError
+from .exceptions import ParseError, TypeConversionError, FileNotFoundError
 import warnings
 
 ENVDOT_CONFIGFILE = ""
@@ -166,6 +166,15 @@ class TypeDetector:
         """
         Automatically detect and convert string to appropriate type
         Supports: bool, int, float, None, and string
+
+        NOTE: this intentionally does NOT split on commas/spaces into a
+        list/tuple. That used to happen here and silently corrupted any
+        plain string value that happened to contain a space (e.g.
+        "My Application" -> ('My', 'Application')), which made cast_type
+        useless downstream since the original string was already gone by
+        the time get()/cast_type ran. List/tuple conversion is only ever
+        done explicitly via cast_type=list / cast_type=tuple, which works
+        against the untouched raw string (see TypeDetector.cast).
         """
         if not isinstance(value, str):
             return value
@@ -175,24 +184,27 @@ class TypeDetector:
         if value.lower() in ('none', 'null', ''):
             return None
         
-        if value.lower() in ('true', 'yes', 'on', '1'):
+        if value.lower() in ('true', 'yes', 'on'):
             return True
-        elif value.lower() in ('false', 'no', 'off', '0'):
+        elif value.lower() in ('false', 'no', 'off'):
             return False
-        elif re.findall(",| ", value):
-            value = [i.strip() for i in re.split(",| ", value, re.I) if i]
-            return tuple(value)
-        
+
         try:
-            if '.' not in value and 'e' not in value.lower() and str(value).isdigit():
+            if re.fullmatch(r'[+-]?\d+', value):
                 return int(value)
         except (ValueError, AttributeError):
             pass
         
         try:
-            return float(value)
+            if re.fullmatch(r'[+-]?(\d+\.\d*|\.\d+|\d+)([eE][+-]?\d+)?', value) and ('.' in value or 'e' in value.lower()):
+                return float(value)
         except (ValueError, AttributeError):
             pass
+
+        # '1'/'0' are ambiguous between bool and int; only treat them as
+        # bool if there was no numeric match above (there always will be,
+        # so this simply documents that '1'/'0' resolve to int here -
+        # use cast_type=bool explicitly if a boolean is what you want).
         
         return value
     
@@ -203,7 +215,75 @@ class TypeDetector:
             return ''
         if isinstance(value, bool):
             return 'true' if value else 'false'
+        if isinstance(value, (list, tuple)):
+            return ', '.join(TypeDetector.to_string(v) for v in value)
         return str(value)
+
+    @staticmethod
+    def cast(raw: Any, cast_type: type) -> Any:
+        """
+        Cast a value to `cast_type`, working from the ORIGINAL raw string
+        whenever possible (rather than from a value already mangled by
+        auto_detect). This is what makes cast_type reliable: e.g.
+        RETRY_COUNT="1" auto-detects fine as int now, but even for
+        ambiguous/edge cases the explicit cast always goes back to source.
+        """
+        if raw is None:
+            return None
+
+        if cast_type == bool:
+            if isinstance(raw, bool):
+                return raw
+            if isinstance(raw, str):
+                return raw.strip().lower() in ('true', 'yes', 'on', '1')
+            return bool(raw)
+
+        if cast_type == dict:
+            if isinstance(raw, dict):
+                return raw
+            if isinstance(raw, (list, tuple)) and raw and isinstance(raw[0], str) and ':' in raw[0]:
+                return {
+                    a.strip(): b.strip()
+                    for item in raw if ':' in item
+                    for a, b in [item.split(':', 1)]
+                }
+            if isinstance(raw, str):
+                s = raw.strip()
+                if s.startswith('{') and s.endswith('}'):
+                    try:
+                        return json.loads(s)
+                    except Exception:
+                        try:
+                            return ast.literal_eval(s)
+                        except Exception:
+                            if HAS_JSON5:
+                                return json5.loads(s)
+                            raise
+                if ':' in s:
+                    return {
+                        a.strip(): b.strip()
+                        for part in re.split(r'[\s,]+', s)
+                        if ':' in part
+                        for a, b in [part.split(':', 1)]
+                    }
+            raise TypeConversionError(f"Cannot convert '{raw}' to dict")
+
+        if cast_type in (list, tuple):
+            if isinstance(raw, (list, tuple)):
+                return cast_type(raw)
+            if isinstance(raw, str):
+                s = raw.strip()
+                if s.startswith(('[', '(')) and s.endswith((']', ')')):
+                    parsed = ast.literal_eval(s)
+                    return cast_type(parsed)
+                parts = [i.strip() for i in re.split(r'[,\s]+', s) if i.strip()]
+                return cast_type(parts)
+            return cast_type([raw])
+
+        # int / float / str / any other callable type
+        if isinstance(raw, str):
+            return cast_type(raw.strip())
+        return cast_type(raw)
 
 
 class FileHandler:
@@ -538,6 +618,13 @@ class DotEnv(metaclass=DotEnvMeta):
     def __init__(self, filepath: Optional[Union[str, Path]] = None, auto_load: bool = True, newone: bool = False):
         global ENVDOT_CONFIGFILE
         self._data: Dict[str, Any] = {}
+        self._raw: Dict[str, str] = {}
+        # Tracks the exact string WE last wrote into os.environ for a key,
+        # so get() can tell "os.environ was changed by someone else since
+        # we last synced it" apart from "os.environ merely already had a
+        # value from another DotEnv instance/process" - only the former
+        # should override our own loaded data.
+        self._synced_os: Dict[str, str] = {}
         self._filepath: Optional[Path] = filepath
         self._format: Optional[str] = None
         # self.newone = newone
@@ -545,9 +632,14 @@ class DotEnv(metaclass=DotEnvMeta):
         object.__setattr__(self, 'newone', newone)
         object.__setattr__(self, 'hash', '')
         
-        if filepath and Path(filepath).is_file():
+        if filepath:
+            # An explicit filepath was given - keep it exactly as given,
+            # even if it doesn't exist (yet). Silently substituting an
+            # unrelated auto-discovered file here would hide a genuine
+            # "that file doesn't exist" mistake from the caller.
             self._filepath = Path(filepath)
-            ENVDOT_CONFIGFILE = filepath
+            if self._filepath.is_file():
+                ENVDOT_CONFIGFILE = filepath
         else:
             self._filepath = self._find_config_file()
         
@@ -734,7 +826,13 @@ class DotEnv(metaclass=DotEnvMeta):
                 f.write('')
         
         if self._filepath and not self._filepath.exists():
-            return self
+            # self._filepath is only ever set to a non-existent path when
+            # the caller explicitly asked for one (via DotEnv(filepath=...)
+            # or load(filepath=...)) - auto-discovery (_find_config_file /
+            # find_settings_recursive) only ever returns paths that exist.
+            # So getting here means a specific file was requested and it's
+            # genuinely missing.
+            raise FileNotFoundError(f"Configuration file not found: {self._filepath}")
         elif not self._filepath:
             return self
         
@@ -770,6 +868,7 @@ class DotEnv(metaclass=DotEnvMeta):
             
             for key in keys_to_remove:
                 del self._data[key]
+                self._raw.pop(key, None)
                 if apply_to_os and key in os.environ:
                     del os.environ[key]
         
@@ -783,17 +882,45 @@ class DotEnv(metaclass=DotEnvMeta):
             
             if override or key not in self._data:
                 self._data[key] = typed_value
+                self._raw[key] = value
 
             if apply_to_os:
                 if not os.getenv(key, False) or os_overwrite:
-                    os.environ[key] = TypeDetector.to_string(typed_value)
+                    written = TypeDetector.to_string(typed_value)
+                    os.environ[key] = written
+                    self._synced_os[key] = written
+
+        # Refresh the change-detection hash now that we're in sync with the file
+        if self._filepath and self._filepath.exists():
+            object.__setattr__(self, 'hash', Path(self._filepath).hash())
 
         return self
 
     def check_file(self, configfile):
-        """Check if config file has changed using hash comparison"""
+        """
+        Check if the config file has changed since the last load, using a
+        content hash comparison.
+
+        Returns True if nothing changed (safe to skip a reload), False if a
+        reload is needed.
+
+        NOTE: this deliberately does NOT go looking for a config file when
+        none is currently tracked (e.g. `DotEnv(auto_load=False)` with no
+        filepath). An earlier version tried to auto-discover one so a file
+        created after startup would get picked up automatically, but
+        combined with `load(override=True)` that meant any plain
+        `.set(key, value)` call could be silently wiped the next time
+        `.get()` ran, if a `.env`/`config.*` happened to exist in the
+        current working directory - very surprising, and a real bug this
+        was caught by (see project history). If you want a config file
+        that appeared after the fact to be picked up, call `load_env()` /
+        `.load()` again explicitly, or pass `reload=True` to `.get()`.
+        """
         if not configfile:
-            return True
+            return True  # No file is being tracked - nothing to reload from.
+
+        if not Path(configfile).exists():
+            return True  # File disappeared - keep serving what we already have.
         
         # Initialize hash if it doesn't exist yet (BYPASS __setattr__)
         if not hasattr(self, 'hash') or not self.hash:
@@ -814,84 +941,101 @@ class DotEnv(metaclass=DotEnvMeta):
             object.__setattr__(self, 'hash', current_hash)
             return False  # File CHANGED
     
-    def get(self, key: str, default: Any = None, cast_type: Optional[type] = None, reload: Optional[bool] = True, with_os: Optional[bool]=True) -> Any:
-        """Get environment variable with automatic type detection"""
+    def _auto_reload(self) -> None:
+        """
+        Reload from the tracked config file if its content changed since
+        the last read - the same "smart" check `get()` uses (see its
+        docstring). Called at the start of every read path (`all()`,
+        `show()`, `keys()`, `__getattr__`, `__contains__`, `find_values()`,
+        `filter()`, `search()`, ...), not just `get()`, so that no matter
+        how you read data from a DotEnv instance, it reflects the current
+        state of the file on disk rather than a stale snapshot from
+        whenever it happened to last be loaded.
+        """
+        if not self.check_file(self._filepath):
+            self.load(self._filepath, apply_to_os=True)
+
+    def get(self, key: str, default: Any = None, cast_type: Optional[type] = None, reload: Optional[bool] = None, with_os: Optional[bool] = True) -> Any:
+        """
+        Get environment variable with automatic type detection.
+
+        `reload` controls whether the backing config file is re-read:
+          - None (default): "auto" - re-read the file only if its content
+            hash has changed, instead of unconditionally re-parsing it on
+            every call. Only applies to a file that's already being
+            tracked (self._filepath) - a file that didn't exist at all
+            when this DotEnv/load_env() was set up is NOT auto-discovered
+            later; call load_env()/.load() again (or pass reload=True)
+            if one appears after the fact.
+          - True: always force a full reload of the file.
+          - False: never check/reload the file for this call.
+
+        Regardless of `reload`, if `with_os` is True (default) a change to
+        os.environ[key] made outside of envdot (e.g. someone did
+        `os.environ['X'] = 'new'` directly) is still picked up, since that's
+        a cheap comparison rather than a full file reparse.
+        """
 
         debug(self__filepath = self._filepath)
-        if getattr(self, 'hash'):
+        if getattr(self, 'hash', None):
             debug(self_hash = self.hash)
             
         debug(reload = reload)
 
-        if reload or not self.check_file(self._filepath):
+        if reload:
             self.load(self._filepath, apply_to_os=True)
-            new_hash = Path(self._filepath).hash()
-            debug(new_hash = new_hash)
-            object.__setattr__(self, 'hash', new_hash)
-            object.__setattr__(self, 'hash', new_hash)
+        elif reload is None:
+            self._auto_reload()
+        # reload=False: skip the file check/reload entirely for this call
 
+        # NOTE: if no config file is tracked at all (self._filepath is
+        # None), the file is never auto-discovered here on purpose - see
+        # check_file()'s docstring for why. Call load_env()/.load() again,
+        # or pass reload=True, if a file appeared after construction.
+        raw_value = self._raw.get(key)
         value = self._data.get(key)
-        debug(value = value)
 
-        if value is None:
-            value = os.environ.get(key)
-            if value is not None:
-                value = TypeDetector.auto_detect(value)
-        
+        if with_os:
+            os_raw = os.environ.get(key)
+            if value is None:
+                # We have no value of our own for this key at all - fall
+                # back to whatever is in the OS environment (this is how a
+                # plain `export FOO=bar` gets picked up with no config file
+                # involved).
+                if os_raw is not None:
+                    raw_value = os_raw
+                    value = TypeDetector.auto_detect(os_raw)
+            elif os_raw is not None and key in self._synced_os and os_raw != self._synced_os[key]:
+                # We DO have a value of our own, but os.environ[key] no
+                # longer matches what WE last wrote there - someone changed
+                # it directly (os.environ[key] = ...) since our last
+                # load/set, so respect that as the freshest value. (If we
+                # never wrote this key to os.environ ourselves, a
+                # pre-existing/foreign os.environ value never overrides our
+                # own loaded data - that's what prevents cross-instance
+                # os.environ pollution from clobbering a correctly loaded
+                # config value.)
+                raw_value = os_raw
+                value = TypeDetector.auto_detect(os_raw)
+                self._data[key] = value
+                self._raw[key] = raw_value
+                self._synced_os[key] = os_raw
+
         debug(default = default)  # type: ignore
         if value is None:
             return default
         
         debug(cast_type = cast_type)  # type: ignore
-        # print(f"cast_type [1]: {cast_type}")
         if cast_type:
+            source = raw_value if raw_value is not None else TypeDetector.to_string(value)
             try:
-                if cast_type == bool:
-                    if isinstance(value, bool):
-                        return value
-                    if isinstance(value, str):
-                        return value.lower() in ('true', 'yes', 'on', '1')
-                    return bool(value)
-                elif cast_type == dict and isinstance(value, dict):
-                    return value
-                elif cast_type == dict and isinstance(value, str) and value.strip().startswith("{") and value.strip().endswith("}"):
-                    try:
-                        return json.loads(value)
-                    except:
-                        try:
-                            return ast.literal_eval(value)
-                        except:
-                            import json5
-                            return json5.loads(value)
-                elif cast_type == dict and isinstance(value, str) and ":" in value.strip():
-                    value = {
-                        a: b
-                        for part in re.split(r"\s+", value)
-                        if ":" in part
-                        for a, b in [part.split(":", 1)]
-                    }
-                elif cast_type in (list, tuple) and isinstance(value, (list, tuple)) and len(value) > 0 and ":" in value[0]:
-                    return {
-                        a: b
-                        for item in value
-                        if ":" in item
-                        for a, b in [item.split(":", 1)]
-                    }
-                elif cast_type in (list, tuple) and isinstance(value, str) and value.strip().startswith(("[", "(")) and value.strip().endswith(("]", ")")):
-                    try:
-                        return ast.literal_eval(value)
-                    except Exception as e:
-                        print("cast_type in (list, tuple), ERROR: {e]}")
-                elif cast_type in (list, tuple) and isinstance(value, str):
-                    value = [i.strip() for i in re.split(r"[, ]+", value) if i.strip()]
-                    return value
-                elif cast_type in (list, tuple) and isinstance(value, (list, tuple)):
-                    return tuple(value)
-                return cast_type(value)
-            except (ValueError, TypeError) as e:
-                if str(os.getenv('TRACEBACK', '0')).lower() in ['1', 'true', 'yes']:
+                return TypeDetector.cast(source, cast_type)
+            except TypeConversionError:
+                raise
+            except Exception as e:
+                if str(os.getenv('TRACEBACK', '0')).lower() in ('1', 'true', 'yes'):
                     traceback.print_exc()
-                raise TypeConversionError(f"Cannot convert '{value}' to {cast_type.__name__}: {e}")
+                raise TypeConversionError(f"Cannot convert '{source}' to {cast_type.__name__}: {e}")
         debug(value = value)  # type: ignore
         return value
     
@@ -899,11 +1043,30 @@ class DotEnv(metaclass=DotEnvMeta):
         return self.get(*args, **kwargs)
 
     def set(self, key: str, value: Any, apply_to_os: bool = True) -> 'DotEnv':
-        """Set environment variable"""
-        self._data[key] = value
+        """
+        Set environment variable.
+
+        A string value is auto-detected exactly the way a value loaded
+        from a config file would be - so e.g. `set('EMPTY', '')` behaves
+        the same as loading `EMPTY=` from a file (-> None), and
+        `set('COUNT', '5')` stores an int, matching `.get()`'s documented
+        [Type Detection Rules]. A non-string value (an int/bool/etc you
+        pass directly, e.g. `set('PORT', 8080)`) is stored as-is.
+        """
+        if isinstance(value, str):
+            typed_value = TypeDetector.auto_detect(value)
+            raw = value
+        else:
+            typed_value = value
+            raw = TypeDetector.to_string(value)
+
+        self._data[key] = typed_value
+        self._raw[key] = raw
         
         if apply_to_os:
-            os.environ[key] = TypeDetector.to_string(value)
+            written = TypeDetector.to_string(typed_value)
+            os.environ[key] = written
+            self._synced_os[key] = written
         
         return self
 
@@ -951,6 +1114,8 @@ class DotEnv(metaclass=DotEnvMeta):
         """Delete environment variable"""
         if key in self._data:
             del self._data[key]
+        self._raw.pop(key, None)
+        self._synced_os.pop(key, None)
         
         if remove_from_os and key in os.environ:
             del os.environ[key]
@@ -959,11 +1124,13 @@ class DotEnv(metaclass=DotEnvMeta):
     
     def all(self) -> Dict[str, Any]:
         """Get all environment variables as dictionary"""
+        self._auto_reload()
         data = os.environ.copy()
         data.update(self._data)
         return data
 
     def show(self, all = False):
+        self._auto_reload()
         if all:
             return self.all()
         return self._data.copy()
@@ -975,17 +1142,20 @@ class DotEnv(metaclass=DotEnvMeta):
         return self.show(all)
 
     def as_dict(self, all = False):
+        self._auto_reload()
         if all:
             return self.all()
         return self._data
     
     def data(self, all = False):
+        self._auto_reload()
         if all:
             return self.all()
         return self._data
     
     def keys(self, all = False) -> list:
         """Get all variable names"""
+        self._auto_reload()
         if all:
             data = self.all()
             return list(data.keys())
@@ -999,6 +1169,8 @@ class DotEnv(metaclass=DotEnvMeta):
                     del os.environ[key]
         
         self._data.clear()
+        self._raw.clear()
+        self._synced_os.clear()
         return self
     
     def find(self, 
@@ -1006,7 +1178,7 @@ class DotEnv(metaclass=DotEnvMeta):
              mode: str = 'wildcard',
              case_sensitive: bool = True,
              return_dict: bool = True, reload: bool = False) -> Union[Dict[str, Any], List[tuple]]:
-        """
+        r"""
         Find configuration keys matching a pattern
         
         Args:
@@ -1056,10 +1228,6 @@ class DotEnv(metaclass=DotEnvMeta):
 
         if reload or not self.check_file(self._filepath):
             self.load(self._filepath, apply_to_os=True)
-            new_hash = Path(self._filepath).hash()
-            debug(new_hash = new_hash)  # type: ignore
-            object.__setattr__(self, 'hash', new_hash)
-            object.__setattr__(self, 'hash', new_hash)
 
         results = {}
         
@@ -1160,6 +1328,7 @@ class DotEnv(metaclass=DotEnvMeta):
         """
         Find configuration items matching a specific value pattern.
         """
+        self._auto_reload()
         results = {}
         pattern_lower = value_pattern.lower() if not case_sensitive else ""
         
@@ -1219,6 +1388,7 @@ class DotEnv(metaclass=DotEnvMeta):
             >>> # Find all non-empty strings
             >>> env.filter(lambda k, v: isinstance(v, str) and v.strip())
         """
+        self._auto_reload()
         return {k: v for k, v in self._data.items() if predicate(k, v)}
     
     def search(self, 
@@ -1246,6 +1416,7 @@ class DotEnv(metaclass=DotEnvMeta):
             >>> env.search(key_pattern='*_KEY', value_pattern='*prod*')
         """
 
+        self._auto_reload()
         results = os.environ.copy()
         results.update(self._data)
 
@@ -1277,6 +1448,11 @@ class DotEnv(metaclass=DotEnvMeta):
         return results
 
     def __getattr__(self, name: str) -> Any:
+        # Avoid recursion/instability for dunder and not-yet-initialized
+        # internal attribute lookups (e.g. during __init__ itself).
+        if name.startswith('_'):
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+        self._auto_reload()
         if name in self._data:
             return self._data[name]
         elif name in os.environ:
@@ -1312,6 +1488,7 @@ class DotEnv(metaclass=DotEnvMeta):
         self.set(key, value)
     
     def __contains__(self, key: str) -> bool:
+        self._auto_reload()
         return key in self._data or key in os.environ
     
     def __repr__(self) -> str:
@@ -1403,11 +1580,12 @@ def data():
 #     global _global_env
 #     return _global_env.get(key, default, cast_type)
 
-def get_env(key: str, default: Any = None, cast_type: Optional[type] = None) -> Any:
+def get_env(key: str, default: Any = None, cast_type: Optional[type] = None, **kwargs) -> Any:
     """Convenience function to get environment variable with auto-reload"""
     global _global_env
-    # This automatically invokes the file-hash check on every call![cite: 1]
-    return _global_env.get(key, default=default, cast_type=cast_type)
+    # Auto (smart) reload: re-reads the file only if it changed, and always
+    # picks up direct os.environ mutations - see DotEnv.get() for details.
+    return _global_env.get(key, default=default, cast_type=cast_type, **kwargs)
 
 def set_env(key: str, value: Optional[Any] = None, option : Optional[Any] = None, **kwargs) -> DotEnv:
     """Convenience function to set environment variable"""
@@ -1432,7 +1610,7 @@ def save_env(filepath: Optional[Union[str, Path]] = None, **kwargs) -> DotEnv:
 # ============================================================================
 
 def find_env(pattern: str, mode: str = 'wildcard', **kwargs) -> Dict[str, Any]:
-    """
+    r"""
     Global function to find environment variables
     
     Examples:
