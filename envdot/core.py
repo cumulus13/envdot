@@ -604,7 +604,7 @@ class DotEnv(metaclass=DotEnvMeta):
         object.__setattr__(self, 'newone', newone)
         object.__setattr__(self, 'hash', '')
         
-        if filepath:
+        if filepath and os.path.isfile(filepath):
             # An explicit filepath was given - keep it exactly as given,
             # even if it doesn't exist (yet). Silently substituting an
             # unrelated auto-discovered file here would hide a genuine
