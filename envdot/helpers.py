@@ -17,6 +17,7 @@ from .exceptions import TypeConversionError
 import ast
 import json
 import traceback
+import threading
 # import traceback
 # import sys
 
@@ -127,6 +128,8 @@ logger = get_logger()
 
 T = TypeVar('T')
 
+_reentry = threading.local()
+
 # Save original os.getenv IMMEDIATELY when module loads
 _original_getenv = os.getenv if not hasattr(os, '_env_dot_original_getenv') else os._env_dot_original_getenv
 
@@ -161,10 +164,18 @@ def getenv_typed(key: str, default: Any = None, cast_type: Optional[type] = None
 
     import envdot.core as core_module
 
-    check = core_module.check_file()
-    # print(f"check [helper]: {check}")
-    if not check:
-        core_module.load(apply_to_os=True, os_overwrite=True)
+    # Re-entrancy guard: loggers (e.g. richcolorlog) call os.getenv() on
+    # every log line. Once os.getenv is replaced by this function, logging
+    # inside check_file()/load() would call back into here forever.
+    if not getattr(_reentry, 'busy', False):
+        _reentry.busy = True
+        try:
+            check = core_module.check_file()
+            if not check:
+                core_module.load(apply_to_os=True, os_overwrite=True)
+            core_module.sync_system_env()
+        finally:
+            _reentry.busy = False
 
     global _original_getenv
 

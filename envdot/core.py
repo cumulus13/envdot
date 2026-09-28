@@ -593,6 +593,10 @@ class DotEnv(metaclass=DotEnvMeta):
         # value from another DotEnv instance/process" - only the former
         # should override our own loaded data.
         self._synced_os: Dict[str, str] = {}
+        # Optional watcher for persistent (registry / env-file) changes made
+        # outside this process - see enable_system_watch() / envdot.sysenv
+        self._sys_watcher = None
+        self._sys_applied: set = set()
         self._filepath: Optional[Path] = filepath
         self._format: Optional[str] = None
         # self.newone = newone
@@ -940,6 +944,52 @@ class DotEnv(metaclass=DotEnvMeta):
         # print(f"check: {check}")
         if not check:
             self.load(self._filepath, apply_to_os=True, os_overwrite=True)
+        self._sync_system_env()
+
+    def enable_system_watch(self, ignore=('PATH',), min_interval: float = 0.25, backend=None) -> bool:
+        """
+        Start applying PERSISTENT environment changes made outside this
+        process (Windows registry user/system environment, Linux
+        /etc/environment + ~/.config/environment.d) - i.e. changes that a
+        running process normally never sees. Only variables that actually
+        changed in the persistent store are applied, so values you set
+        inside the process are never clobbered otherwise.
+
+        Returns True if the current platform is supported, else False.
+        See envdot/sysenv.py for details and limits.
+        """
+        from .sysenv import SystemEnvWatcher
+        watcher = SystemEnvWatcher(ignore=ignore, min_interval=min_interval, backend=backend)
+        if not watcher.supported:
+            self._sys_watcher = None
+            return False
+        watcher.poll(force=True)  # record the baseline now
+        self._sys_watcher = watcher
+        return True
+
+    def disable_system_watch(self) -> None:
+        self._sys_watcher = None
+
+    def _sync_system_env(self) -> None:
+        watcher = self._sys_watcher
+        if watcher is None:
+            return
+        changed, removed = watcher.poll()
+        for key, value in changed.items():
+            os.environ[key] = value
+            self._synced_os[key] = value
+            self._raw[key] = value
+            self._data[key] = TypeDetector.auto_detect(value)
+            self._sys_applied.add(key)
+        for key, old_value in removed.items():
+            # Only undo what the system store gave us, and only if nobody
+            # changed it in-process since - never delete a local override.
+            if key in self._sys_applied and os.environ.get(key) == old_value:
+                os.environ.pop(key, None)
+                self._data.pop(key, None)
+                self._raw.pop(key, None)
+                self._synced_os.pop(key, None)
+                self._sys_applied.discard(key)
 
     def get(self, key: str, default: Any = None, cast_type: Optional[type] = None, reload: Optional[bool] = True, with_os: Optional[bool] = True) -> Any:
         """
@@ -1501,6 +1551,7 @@ def load_env(
     apply_to_os=True,
     patch_os: bool = True,
     debugging: bool = False,
+    watch_system_env: bool = False,
     **kwargs
 ) -> DotEnv:
 
@@ -1548,6 +1599,9 @@ def load_env(
         os.getenv = _global_env.get
         os.environ = _global_env._data
     
+    if watch_system_env:
+        _global_env.enable_system_watch()
+
     return _global_env
 
 def Env(*args, **kwargs):
@@ -1628,6 +1682,10 @@ def filter_env(predicate) -> Dict[str, Any]:
 def search_env(pattern: str, value: Optional[str] = None, mode: str = 'wildcard', **kwargs) -> Dict[str, Any]:
     global _global_env
     return _global_env.search(pattern, value, mode, **kwargs)
+
+def sync_system_env():
+    """Apply pending persistent (registry / env-file) changes, if watching."""
+    _global_env._sync_system_env()
 
 def check_file():
     # _global_env = DotEnv(auto_load=False)
