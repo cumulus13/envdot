@@ -148,8 +148,8 @@ if (len(sys.argv) > 1 and any(arg in ('--debug', '--envdot-debug', '--debug-envd
     from pydebugger.debug import debug
 else:
     # debug = _fallback_pydebugger
-    os.environ.pop("DEBUG", None)
-    os.environ.pop("PYDEBUGGER", None)
+    # os.environ.pop("DEBUG", None)
+    # os.environ.pop("PYDEBUGGER", None)
     def debug(*args, **kwargs):
         return
 
