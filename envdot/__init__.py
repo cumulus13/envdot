@@ -46,7 +46,7 @@ __all__ = [
     "get_env",
     "set_env",
     "save_env",
-    "DotEnvError",
+    "EnvDotError",
     "FileNotFoundError",
     "ParseError",
     "TypeConversionError",
