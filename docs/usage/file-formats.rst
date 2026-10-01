@@ -2,16 +2,18 @@
 File Formats
 ============
 
-envdot supports multiple configuration file formats, making it easy to work with 
+envdot supports multiple configuration file formats, making it easy to work with
 different project setups and migrate between formats.
 
 Supported Formats
------------------
+------------------
 
 * ``.env`` - Traditional environment file format
 * ``.json`` - JSON configuration files
-* ``.yaml`` / ``.yml`` - YAML configuration files (requires PyYAML)
+* ``.yaml`` / ``.yml`` - YAML configuration files (requires ``PyYAML``)
 * ``.ini`` - INI configuration files
+* ``.toml`` - TOML configuration files (requires ``tomli``/``tomllib`` to read,
+  ``tomli-w`` to write)
 
 .env Format
 -----------
@@ -67,7 +69,7 @@ Loading JSON files:
 
 .. note::
 
-   Nested JSON structures are automatically flattened:
+   Nested structures are automatically flattened:
 
    * ``FEATURES.API`` becomes ``FEATURES_API``
    * ``DATABASE.HOST`` becomes ``DATABASE_HOST``
@@ -97,7 +99,7 @@ YAML configuration with clean syntax:
 
 .. warning::
 
-   YAML support requires PyYAML. Install with:
+   YAML support requires PyYAML:
 
    .. code-block:: bash
 
@@ -140,14 +142,57 @@ Loading INI files:
 
 .. note::
 
-   INI sections are prefixed to key names:
+   INI sections are prefixed onto key names:
 
    * ``[database]`` section with ``host`` key becomes ``DATABASE_HOST``
+
+   An empty value (``name =``) parses as an empty string, which
+   auto-detects to ``None`` — this is expected and matches how an empty
+   ``.env`` assignment (``NAME=``) behaves.
+
+TOML Format
+-----------
+
+.. code-block:: toml
+
+   # config.toml
+   DEBUG = true
+   PORT = 8080
+   DATABASE_URL = "postgresql://localhost/mydb"
+
+   [database]
+   host = "localhost"
+   port = 5432
+
+   [[servers]]
+   name = "alpha"
+   ip = "10.0.0.1"
+
+.. warning::
+
+   Reading ``.toml`` uses the standard-library ``tomllib`` on Python 3.11+,
+   or the ``tomli`` package on older versions. Writing/saving ``.toml``
+   (via ``env.save('config.toml')``) requires ``tomli-w``:
+
+   .. code-block:: bash
+
+      pip install envdot[toml]
+
+.. code-block:: python
+
+   env = DotEnv('config.toml')
+   env.load()
+
+.. note::
+
+   Nested tables flatten the same way JSON/YAML do
+   (``[database]`` + ``host`` -> ``DATABASE_HOST``), and arrays of tables
+   (``[[servers]]``) flatten with an index, e.g. ``SERVERS_0_NAME``.
 
 Auto-Detection
 --------------
 
-envdot automatically detects the file format based on the extension:
+envdot automatically detects the file format from the extension:
 
 .. code-block:: python
 
@@ -156,9 +201,10 @@ envdot automatically detects the file format based on the extension:
    env2 = DotEnv('config.json')    # JSON format
    env3 = DotEnv('config.yaml')    # YAML format
    env4 = DotEnv('settings.ini')   # INI format
+   env5 = DotEnv('settings.toml')  # TOML format
 
 Converting Between Formats
---------------------------
+------------------------------
 
 Easily convert from one format to another:
 
@@ -174,27 +220,31 @@ Easily convert from one format to another:
    env.save('config.json')    # Export to JSON
    env.save('config.yaml')    # Export to YAML
    env.save('config.ini')     # Export to INI
+   env.save('config.toml')    # Export to TOML
 
 Format Comparison
------------------
+------------------
 
 .. list-table:: Format Feature Comparison
    :header-rows: 1
-   :widths: 20 20 20 20 20
+   :widths: 20 16 16 16 16 16
 
    * - Feature
      - .env
      - JSON
      - YAML
      - INI
+     - TOML
    * - Native types
      - ✗
      - ✓
      - ✓
      - ✗
+     - ✓
    * - Comments
      - ✓
      - ✗
+     - ✓
      - ✓
      - ✓
    * - Nested structures
@@ -202,21 +252,22 @@ Format Comparison
      - ✓
      - ✓
      - ✓ (sections)
+     - ✓ (tables)
    * - Dependencies
      - None
      - None
      - PyYAML
      - None
+     - tomli / tomli-w
    * - Human readable
      - ✓✓
      - ✓
      - ✓✓
      - ✓
+     - ✓✓
 
 Nested Structure Handling
--------------------------
-
-When loading nested structures from JSON, YAML, or INI, envdot flattens them:
+------------------------------
 
 **Original JSON:**
 
@@ -271,8 +322,8 @@ Lists are converted to indexed keys:
 Best Practices
 --------------
 
-1. **For simplicity**: Use ``.env`` files for straightforward key-value pairs
-2. **For complex configuration**: Use JSON or YAML for nested structures
-3. **For compatibility**: Use INI for legacy system integration
-4. **For documentation**: Use YAML with comments for self-documenting configs
-5. **Keep sensitive data out of version control**: Add your config files to ``.gitignore``
+1. **For simplicity**: use ``.env`` files for straightforward key-value pairs
+2. **For complex configuration**: use JSON, YAML, or TOML for nested structures
+3. **For legacy integration**: use INI
+4. **For self-documenting configs**: use YAML or TOML with comments
+5. **Keep sensitive data out of version control**: add your config files to ``.gitignore``

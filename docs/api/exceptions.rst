@@ -2,13 +2,29 @@
 Exceptions
 ==========
 
-envdot defines custom exceptions for clear error handling.
+envdot defines custom exceptions for clear error handling, all under
+``envdot.exceptions``.
 
 .. module:: envdot.exceptions
    :synopsis: Custom exceptions for envdot
 
+.. warning::
+
+   ``envdot.exceptions.FileNotFoundError`` is envdot's **own** exception
+   class — it does *not* inherit from Python's built-in
+   ``FileNotFoundError``. If you do
+   ``from envdot.exceptions import FileNotFoundError``, that import
+   shadows the builtin name within your module, which is convenient for
+   catching envdot's version but means ``except FileNotFoundError`` in
+   that module will no longer catch a plain OS-level file error. Import
+   it under an alias if you need both:
+
+   .. code-block:: python
+
+      from envdot.exceptions import FileNotFoundError as EnvdotFileNotFoundError
+
 Exception Hierarchy
--------------------
+--------------------
 
 .. code-block:: text
 
@@ -26,10 +42,8 @@ EnvDotError
 
 .. class:: EnvDotError
 
-   Base exception class for all envdot errors.
-
-   All envdot exceptions inherit from this class, making it easy to catch 
-   any envdot-related error:
+   Base exception class for all envdot errors. Catch this to handle any
+   envdot-specific error:
 
    .. code-block:: python
 
@@ -43,17 +57,18 @@ EnvDotError
           print(f"envdot error: {e}")
 
 File Exceptions
----------------
+----------------
 
 FileNotFoundError
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 .. class:: FileNotFoundError
 
-   Raised when a specified configuration file does not exist.
-
-   :param filepath: Path to the file that was not found
-   :type filepath: str or Path
+   Raised by :meth:`DotEnv.load` when an **explicit** filepath (given to
+   ``DotEnv(filepath=...)`` or ``load(filepath=...)``) does not exist on
+   disk. A filepath that was never given at all — where envdot searches
+   for a config file on its own and finds nothing — does *not* raise this;
+   it simply leaves the instance unconfigured.
 
    **Example:**
 
@@ -67,29 +82,18 @@ FileNotFoundError
           env.load()
       except FileNotFoundError as e:
           print(f"Configuration file not found: {e}")
-          # Use defaults or create file
-
-   **Attributes:**
-
-   - ``filepath``: The path that was not found
 
 Parsing Exceptions
-------------------
+--------------------
 
 ParseError
-~~~~~~~~~~
+~~~~~~~~~~~
 
 .. class:: ParseError
 
-   Raised when a configuration file cannot be parsed.
-
-   This can occur when:
-
-   - The file format doesn't match the extension
-   - The file contains invalid syntax
-   - Required dependencies are missing (e.g., PyYAML for .yaml files)
-
-   **Example:**
+   Raised when a configuration file cannot be parsed — invalid syntax for
+   its format, or a required optional dependency (PyYAML, tomli) isn't
+   installed for that format.
 
    .. code-block:: python
 
@@ -116,18 +120,15 @@ ParseError
       # Trying to load .yaml without PyYAML installed
 
 Type Exceptions
----------------
+----------------
 
 TypeConversionError
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. class:: TypeConversionError
 
-   Raised when a value cannot be converted to the requested type.
-
-   This occurs when using ``cast_type`` parameter and the conversion fails.
-
-   **Example:**
+   Raised when ``cast_type`` is given to :meth:`DotEnv.get` (or
+   :func:`envdot.getenv_typed`) and the conversion fails.
 
    .. code-block:: python
 
@@ -141,19 +142,12 @@ TypeConversionError
           value = env.get('APP_NAME', cast_type=int)
       except TypeConversionError as e:
           print(f"Type conversion failed: {e}")
-          # Handle the error - maybe use default value
-
-   **Attributes:**
-
-   - ``key``: The variable name
-   - ``value``: The original value
-   - ``target_type``: The type conversion was attempted to
 
 Error Handling Patterns
------------------------
+-------------------------
 
 Catching Specific Errors
-~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
@@ -177,7 +171,7 @@ Catching Specific Errors
            raise
 
 Catching All envdot Errors
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
@@ -194,7 +188,7 @@ Catching All envdot Errors
            return DotEnv(auto_load=False)
 
 Safe Value Retrieval
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
@@ -216,7 +210,7 @@ Safe Value Retrieval
        }
 
 Validation with Exceptions
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 

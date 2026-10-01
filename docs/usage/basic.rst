@@ -5,10 +5,10 @@ Basic Usage
 This guide covers the fundamental operations you'll use most often with envdot.
 
 Loading Environment Variables
------------------------------
+--------------------------------
 
 Using Convenience Functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The simplest approach is using the ``load_env`` function:
 
@@ -26,7 +26,7 @@ The simplest approach is using the ``load_env`` function:
    show()
 
 Using the DotEnv Class
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 For more control, use the ``DotEnv`` class:
 
@@ -44,11 +44,21 @@ For more control, use the ``DotEnv`` class:
    env = DotEnv('.env', auto_load=False)
    env.load()  # Manual load
 
+.. note::
+
+   If you pass an explicit ``filepath`` to ``DotEnv(...)`` or ``.load(...)``
+   and that file does not exist, envdot raises
+   ``envdot.exceptions.FileNotFoundError`` rather than silently falling
+   back to an unrelated auto-discovered file. When no filepath is given at
+   all, envdot searches the current directory (and, with ``recursive``,
+   its subdirectories) for ``.env`` and other supported files, and simply
+   starts empty if none is found — that case never raises.
+
 Getting Values
 --------------
 
-Using get() Method
-~~~~~~~~~~~~~~~~~~
+Using get()
+~~~~~~~~~~~
 
 .. code-block:: python
 
@@ -62,11 +72,12 @@ Using get() Method
    # Get with default value
    port = env.get('PORT', default=8080)
 
-   # Get with explicit type casting
-   version = env.get('VERSION', cast_type=str)
+   # Get with explicit type casting - always casts from the ORIGINAL
+   # string value, never from an already auto-detected value
+   version = env.get('PORT', cast_type=str)
 
-Using Convenience Function
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Using the Convenience Function
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
@@ -81,7 +92,7 @@ Using Convenience Function
    timeout = get_env('TIMEOUT', default=30)
 
 Dictionary-Style Access
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
@@ -96,12 +107,11 @@ Dictionary-Style Access
 
    # Get all keys
    all_keys = env.keys()
-
-   # Get all variables as dict
-   all_vars = env.all()
+   all_vars = env.all()          # merges os.environ with envdot's own data
+   own_vars = env.show()         # envdot's own data only (all=False, default)
 
 Attribute Access
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
@@ -114,11 +124,16 @@ Attribute Access
    # Set as attributes
    config.NEW_KEY = 'value'
 
+Every one of these read paths — ``get()``, ``show()``, ``all()``,
+``as_dict()``, ``data()``, ``keys()``, attribute access, and ``in`` checks —
+automatically re-reads the config file if it changed on disk. See
+:doc:`auto-reload` for details.
+
 Setting Values
 --------------
 
-Using set() Method
-~~~~~~~~~~~~~~~~~~
+Using set()
+~~~~~~~~~~~
 
 .. code-block:: python
 
@@ -141,8 +156,16 @@ Using set() Method
    # Set without applying to os.environ
    env.set('INTERNAL_KEY', 'value', apply_to_os=False)
 
-Using Convenience Function
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. note::
+
+   ``set()`` auto-detects a **string** value exactly the way a value loaded
+   from a file would be — so ``env.set('EMPTY', '')`` results in ``None``
+   (matching what loading ``EMPTY=`` from a file produces), and
+   ``env.set('COUNT', '5')`` stores the int ``5``. A non-string value you
+   pass directly (``env.set('PORT', 8080)``) is stored exactly as given.
+
+Using the Convenience Function
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
@@ -152,7 +175,7 @@ Using Convenience Function
    set_env('VERSION', '2.0.0')
 
 Dictionary-Style Assignment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
@@ -162,10 +185,7 @@ Dictionary-Style Assignment
    env['FEATURE_FLAG'] = True
 
 Saving Variables
-----------------
-
-Save to File
-~~~~~~~~~~~~
+------------------
 
 .. code-block:: python
 
@@ -174,46 +194,34 @@ Save to File
    env = DotEnv('.env')
    env.set('NEW_KEY', 'value')
 
-   # Save to original file
-   env.save()
+   env.save()                 # Save to original file
+   env.save('backup.env')     # Save to a different file
+   env.save('config.json')    # Save as a different format
 
-   # Save to a different file
-   env.save('backup.env')
-
-   # Save to different format
-   env.save('config.json')
-
-   # Using convenience function
-   save_env('config.env')
+   save_env('config.env')     # Convenience-function equivalent
 
 Deleting Variables
-------------------
+--------------------
 
 .. code-block:: python
 
    env = DotEnv('.env')
 
-   # Delete from envdot only
-   env.delete('OLD_KEY')
-
-   # Delete from both envdot and os.environ
-   env.delete('TEMP_KEY', remove_from_os=True)
+   env.delete('OLD_KEY')                          # also removed from os.environ
+   env.delete('TEMP_KEY', remove_from_os=False)    # envdot only
 
 Clearing Variables
-------------------
+--------------------
 
 .. code-block:: python
 
    env = DotEnv('.env')
 
-   # Clear internal storage only
-   env.clear()
-
-   # Also clear from os.environ
-   env.clear(clear_os=True)
+   env.clear()                # Clear internal storage only
+   env.clear(clear_os=True)   # Also clear those keys from os.environ
 
 Display Variables
------------------
+--------------------
 
 .. code-block:: python
 
@@ -221,28 +229,25 @@ Display Variables
 
    env = load_env()
 
-   # Show all variables (module-level function)
-   show()
-
-   # Show via instance method
-   env.show()
+   show()         # module-level convenience function
+   env.show()     # equivalent instance method
+   env.all()      # merged with the current os.environ
 
 Method Chaining
----------------
+------------------
 
 envdot supports method chaining for a fluent API:
 
 .. code-block:: python
 
    env = (DotEnv('.env')
-          .load()
           .set('KEY1', 'value1')
           .set('KEY2', 123)
           .set('KEY3', True)
           .save())
 
 OS Environment Integration
---------------------------
+------------------------------
 
 By default, envdot syncs with ``os.environ``:
 
@@ -251,18 +256,16 @@ By default, envdot syncs with ``os.environ``:
    import os
    from envdot import load_env
 
-   # Load and sync to os.environ
-   load_env()
+   load_env()                          # loads and syncs to os.environ
 
-   # Access via os.environ (properly typed)
-   debug = os.getenv('DEBUG')  # True (bool)
+   debug = os.getenv('DEBUG')          # True (bool), via the typed os.getenv
 
    # Control sync behavior
    env = DotEnv('.env')
-   env.load(apply_to_os=False)  # Don't sync to os.environ
+   env.load(apply_to_os=False)         # don't sync this load to os.environ
 
 Real-World Example
-------------------
+--------------------
 
 Here's a complete example for a web application:
 

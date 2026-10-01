@@ -2,14 +2,14 @@
 Contributing
 ============
 
-Thank you for your interest in contributing to envdot! This guide will help 
+Thank you for your interest in contributing to envdot! This guide will help
 you get started.
 
 Getting Started
----------------
+----------------
 
 Fork and Clone
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 1. Fork the repository on GitHub
 2. Clone your fork locally:
@@ -26,7 +26,7 @@ Fork and Clone
       git remote add upstream https://github.com/cumulus13/envdot.git
 
 Development Setup
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 1. Create a virtual environment:
 
@@ -36,25 +36,27 @@ Development Setup
       source venv/bin/activate  # Linux/macOS
       venv\Scripts\activate     # Windows
 
-2. Install development dependencies:
+2. Install in editable mode with every optional extra, plus dev tools:
 
    .. code-block:: bash
 
-      pip install -e ".[dev]"
+      pip install -e ".[full]"
+      pip install pytest pytest-cov coverage black flake8 mypy
 
-3. Verify setup by running tests:
+3. Verify the setup by running the test suite:
 
    .. code-block:: bash
 
       pytest
 
+      # or, without pytest:
+      python test_dotenv.py
+
 Development Workflow
---------------------
+------------------------
 
 Creating a Branch
-~~~~~~~~~~~~~~~~~
-
-Create a new branch for your feature or bugfix:
+~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
@@ -63,11 +65,13 @@ Create a new branch for your feature or bugfix:
    git checkout -b fix/your-bugfix-name
 
 Making Changes
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
-1. Write your code following the coding standards
-2. Add tests for new functionality
-3. Update documentation as needed
+1. Write your code following the coding standards below
+2. Add tests for new functionality — prefer real execution over
+   theoretical/mocked-out assertions where practical, and add a fixture
+   under ``tests/`` for anything format-specific
+3. Update documentation as needed (this ``docs/`` tree)
 4. Run tests and linting:
 
    .. code-block:: bash
@@ -87,8 +91,8 @@ Making Changes
       # Format code
       black envdot tests
 
-Committing
-~~~~~~~~~~
+Commit messages
+~~~~~~~~~~~~~~~~~~
 
 Write clear commit messages:
 
@@ -112,7 +116,7 @@ Commit message prefixes:
 - ``chore:`` - Maintenance tasks
 
 Submitting a Pull Request
-~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 1. Push your branch to your fork:
 
@@ -131,10 +135,10 @@ Submitting a Pull Request
 4. Wait for code review and address feedback
 
 Coding Standards
-----------------
+--------------------
 
 Code Style
-~~~~~~~~~~
+~~~~~~~~~~~~
 
 envdot follows PEP 8 with some modifications:
 
@@ -149,11 +153,11 @@ Use black for formatting:
    black envdot tests --line-length 100
 
 Documentation
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 
-- Use Google-style docstrings
+- Use Google-style docstrings (Napoleon-compatible)
 - Include type information in docstrings
-- Provide examples for complex functions
+- Provide examples for non-trivial functions
 
 Example docstring:
 
@@ -165,13 +169,15 @@ Example docstring:
        Args:
            key: The variable name to retrieve.
            default: Default value if key doesn't exist.
-           cast_type: Force conversion to specific type.
+           cast_type: Force conversion to a specific type, always from the
+               original raw string rather than an already-detected value.
 
        Returns:
            The value with detected or cast type.
 
        Raises:
-           TypeConversionError: If cast_type is specified and conversion fails.
+           envdot.exceptions.TypeConversionError: If cast_type is given and
+               conversion fails.
 
        Example:
            >>> env = DotEnv('.env')
@@ -183,12 +189,13 @@ Testing
 -------
 
 Writing Tests
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
-- Place tests in the ``tests/`` directory
+- Place tests in ``tests/`` (or alongside ``test_dotenv.py`` at the repo root)
 - Name test files ``test_*.py``
 - Name test functions ``test_*``
-- Use pytest fixtures for common setup
+- Use pytest fixtures for common setup, and ``tmp_path`` for anything
+  touching the filesystem so tests don't pollute the real working directory
 
 Example test:
 
@@ -220,8 +227,16 @@ Example test:
        assert isinstance(env.get('BOOL_VAL'), bool)
        assert isinstance(env.get('INT_VAL'), int)
 
+.. tip::
+
+   A stray config file left over in the current working directory from an
+   earlier test can affect auto-discovery in a later one. If your test
+   doesn't pass an explicit ``filepath``, run it from (or ``chdir`` into)
+   an isolated ``tmp_path``, or pass an explicit nonexistent-by-design
+   path with ``auto_load=False``.
+
 Running Tests
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
@@ -230,33 +245,29 @@ Running Tests
 
    # Run with verbose output
    pytest -v
-
-   # Run specific test file
-   pytest tests/test_dotenv.py
-
-   # Run specific test
-   pytest tests/test_dotenv.py::test_load_env_file
-
-   # Run with coverage
+   pytest tests/test_all_formats.py
+   pytest tests/test_all_formats.py::TestDotEnvFormat::test_load_env_file
    pytest --cov=envdot --cov-report=html
 
+   # or, without pytest:
+   python test_dotenv.py
+
 Reporting Issues
-----------------
+--------------------
 
 Bug Reports
-~~~~~~~~~~~
+~~~~~~~~~~~~~~
 
 Include:
 
-- Python version
-- envdot version
-- Operating system
-- Steps to reproduce
+- Python version, envdot version, operating system
+- Steps to reproduce, ideally a minimal ``.env``/config file plus the code
 - Expected vs actual behavior
-- Relevant configuration files (sanitized)
+- Whether the config file changed on disk during the session, and any
+  relevant environment variables that were also set (sanitized)
 
 Feature Requests
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 Include:
 
@@ -266,7 +277,7 @@ Include:
 - Any relevant examples
 
 Code of Conduct
----------------
+--------------------
 
 - Be respectful and inclusive
 - Welcome newcomers
@@ -277,7 +288,7 @@ Getting Help
 ------------
 
 - Open an issue on GitHub
-- Check existing issues and documentation
+- Check existing issues and this documentation
 - Contact the maintainer: cumulus13@gmail.com
 
 Thank you for contributing to envdot!

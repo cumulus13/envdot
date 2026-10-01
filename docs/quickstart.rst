@@ -5,7 +5,7 @@ Quickstart
 This guide will help you get started with envdot in just a few minutes.
 
 Creating Your First .env File
------------------------------
+------------------------------
 
 Create a ``.env`` file in your project root:
 
@@ -19,7 +19,7 @@ Create a ``.env`` file in your project root:
    APP_NAME=MyApplication
 
 Loading Environment Variables
------------------------------
+------------------------------
 
 The simplest way to load your environment variables:
 
@@ -27,20 +27,21 @@ The simplest way to load your environment variables:
 
    from envdot import load_env
 
-   # Load from .env in current directory
+   # Load from .env in the current directory (searched automatically)
    load_env()
 
    # or load_env('.env')
-   # or load_env('.json')
-   # or load_env('.yaml')
-   # or load_env('.ini')
+   # or load_env('config.json')
+   # or load_env('config.yaml')
+   # or load_env('config.ini')
+   # or load_env('config.toml')
    # or load_env('config.env')
    # or load_env('/etc/config.env')
    # or load_env(r'c:\.env')
    # or load_env(r'c:\traceback.ini')
 
 Using the DotEnv Class
-----------------------
+------------------------
 
 For more control, use the ``DotEnv`` class directly:
 
@@ -52,12 +53,12 @@ For more control, use the ``DotEnv`` class directly:
    env = DotEnv('.env')
 
    # Access values with automatic type detection
-   debug = env.get('DEBUG')      # Returns: True (bool)
-   port = env.get('PORT')        # Returns: 8080 (int)
+   debug = env.get('DEBUG')          # Returns: True (bool)
+   port = env.get('PORT')            # Returns: 8080 (int)
    timeout = env.get('API_TIMEOUT')  # Returns: 30.5 (float)
 
 Automatic Type Detection
-------------------------
+--------------------------
 
 envdot automatically converts values to appropriate Python types:
 
@@ -68,16 +69,20 @@ envdot automatically converts values to appropriate Python types:
    load_env()
 
    # Boolean values
-   debug = get_env('DEBUG')  # "true" → True
+   debug = get_env('DEBUG')  # "true" -> True
 
    # Integer values
-   port = get_env('PORT')    # "8080" → 8080
+   port = get_env('PORT')    # "8080" -> 8080
 
    # Float values
-   timeout = get_env('API_TIMEOUT')  # "30.5" → 30.5
+   timeout = get_env('API_TIMEOUT')  # "30.5" -> 30.5
 
-   # String values remain as strings
-   name = get_env('APP_NAME')  # "MyApplication" → "MyApplication"
+   # String values remain as strings - a space or comma in the value
+   # does NOT turn it into a list/tuple automatically
+   name = get_env('APP_NAME')  # "MyApplication" -> "MyApplication"
+
+See :doc:`usage/type-detection` for the complete rules, and how to force a
+type with ``cast_type``.
 
 Setting Values
 --------------
@@ -100,7 +105,7 @@ Or using the DotEnv class:
    env.set('FEATURE_ENABLED', True)
 
 Attribute Access
-----------------
+------------------
 
 envdot supports attribute-style access for convenience:
 
@@ -131,11 +136,11 @@ Save your changes back to a file:
    # Save to original file
    save_env()
 
-   # Or save to a new file
+   # Or save to a new file (format is inferred from the extension)
    save_env('config.json')
 
 Method Chaining
----------------
+----------------
 
 Use method chaining for cleaner code:
 
@@ -144,7 +149,6 @@ Use method chaining for cleaner code:
    from envdot import DotEnv
 
    env = (DotEnv('.env')
-          .load()
           .set('KEY1', 'value1')
           .set('KEY2', 123)
           .save())
@@ -164,10 +168,33 @@ Provide default values for missing keys:
    # Returns 'localhost' if DB_HOST is not set
    host = get_env('DB_HOST', default='localhost')
 
-Using with os.getenv
---------------------
+Auto-Reload — Just Read Again
+--------------------------------
 
-After loading, values are available via ``os.getenv`` with proper types:
+Every read reflects the current file content — no manual reload step, no
+process restart:
+
+.. code-block:: python
+
+   from envdot import load_env, get_env
+
+   conf = load_env('config.ini')
+   print(conf.show())          # {'TAG_NAME': None, ...}
+
+   # ...edit config.ini on disk, e.g. name = TEST under [tag]...
+
+   print(conf.show())          # picks up the change automatically
+   print(conf.TAG_NAME)        # 'TEST'
+   print(get_env('TAG_NAME'))  # 'TEST'
+
+See :doc:`usage/auto-reload` for exactly what triggers a reload and how to
+control it.
+
+Using with os.getenv
+----------------------
+
+After ``replace_os_getenv()`` (called automatically by ``load_env()``),
+values are available via ``os.getenv`` with proper types:
 
 .. code-block:: python
 
@@ -183,7 +210,9 @@ After loading, values are available via ``os.getenv`` with proper types:
 Next Steps
 ----------
 
-* Learn about :doc:`usage/file-formats` for JSON, YAML, and INI support
+* Learn about :doc:`usage/file-formats` for JSON, YAML, INI, and TOML support
 * Explore :doc:`usage/type-detection` for type conversion rules
-* Check out :doc:`usage/advanced` for advanced features
-* See the :doc:`api/dotenv` for complete API reference
+* Understand :doc:`usage/auto-reload` for exactly when a reload happens
+* Check out :doc:`usage/system-env-watch` for cross-process (registry) env changes
+* See :doc:`usage/advanced` for advanced features
+* See the :doc:`api/dotenv` for the complete API reference

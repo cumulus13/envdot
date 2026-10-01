@@ -16,48 +16,61 @@ envdot - Enhanced Environment Variable Manager
    :target: https://opensource.org/licenses/MIT
    :alt: License
 
-**envdot** is an enhanced environment variable management library for Python with 
-multi-format support and automatic type detection.
+**envdot** is an enhanced environment variable management library for Python with
+multi-format support, automatic type detection, and hot auto-reload.
 
 Features
 --------
 
 🔧 **Multiple Format Support**
-   Load configuration from ``.env``, ``.json``, ``.yaml``, ``.yml``, and ``.ini`` files.
+   Load configuration from ``.env``, ``.json``, ``.yaml``, ``.yml``, ``.ini``, and ``.toml`` files.
 
 🎯 **Automatic Type Detection**
-   Automatically converts strings to ``bool``, ``int``, ``float``, or keeps as ``string``. and Support converts strings to ``list``, ``tuple`` by using ``cast_type``.
+   Automatically converts strings to ``bool``, ``int``, ``float``, ``None``, or keeps as ``str``.
+   Explicitly cast to ``list``, ``tuple``, or ``dict`` with ``cast_type`` — always from the
+   original raw string, never from an already-detected value, so casting stays predictable.
 
 💾 **Read and Write**
-   Load from and save to configuration files seamlessly.
+   Load from and save to configuration files seamlessly, across formats.
 
 🔄 **Method Chaining**
    Fluent API for cleaner, more readable code.
 
 🌍 **OS Environment Integration**
-   Works seamlessly with ``os.environ``.
+   Works seamlessly with ``os.environ`` — including an optional typed ``os.getenv()``
+   replacement.
 
-📦 **Zero Dependencies**
-   Core functionality works without external packages (YAML support requires PyYAML).
+📦 **Minimal Core Dependencies**
+   Core ``.env``/``.json``/``.ini`` support works out of the box; YAML/TOML support needs
+   their respective optional packages.
 
-🌿 **Auto re-load**
-   Automatically reload the config file if the hash changes or use `reload=True`
+🌿 **Smart Auto-Reload**
+   Every read — ``get()``, ``show()``, ``all()``, attribute access, ``in`` checks,
+   ``find()``/``filter()``/``search()`` — automatically re-reads the config file when its
+   content actually changed, using a cheap hash check, not a full reparse on every call.
+
+🪟 **Persistent System Environment Watching** *(optional, opt-in)*
+   On Windows and Linux, envdot can additionally detect environment variables changed
+   *outside* the running process — via the Windows registry (``setx``, System Properties)
+   or ``/etc/environment`` / ``~/.config/environment.d/`` on Linux — and apply them live.
+   See :doc:`usage/system-env-watch`.
 
 Quick Example
 -------------
 
 .. code-block:: python
 
+   import os
    from envdot import load_env, get_env, set_env
 
-   # Load environment variables from .env file
+   # Load environment variables from .env (or any supported format)
    load_env()
 
    # or load_env('.env')
-   # or load_env('.json')
-   # or load_env('.yaml')
-   # or load_env('.ini')
-   # or load_env('config.env')
+   # or load_env('config.json')
+   # or load_env('config.yaml')
+   # or load_env('config.ini')
+   # or load_env('config.toml')
    # or load_env('/etc/config.env')
    # or load_env(r'c:\.env')
    # or load_env(r'c:\traceback.ini')
@@ -66,14 +79,23 @@ Quick Example
    debug = get_env('DEBUG')       # Returns: True (bool)
    port = get_env('PORT')         # Returns: 8080 (int)
    timeout = get_env('TIMEOUT')   # Returns: 30.5 (float)
-   allowed_hosts = os.getenv("*,127.0.0.1 192.168.10.2,example.com", cast_type=list) # Return: [*,127.0.0.1,192.168.10.2,example.com]  # (list)
+
+   # Explicit casting - always works from the ORIGINAL string, so it's
+   # reliable even for values auto-detection would otherwise mangle
+   # ALLOWED_HOSTS=localhost, 127.0.0.1, example.com
+   hosts = get_env('ALLOWED_HOSTS', cast_type=list)
+   # -> ['localhost', '127.0.0.1', 'example.com']
    allowed_hosts = os.getenv("*,127.0.0.1 192.168.10.2,example.com", cast_type=tuple) # Return: (*,127.0.0.1,192.168.10.2,example.com)  # (tuple)
 
    # Set new values
-   set_env('NEW_FEATURE', True) or os.setenv('NEW_FEATURE', True)
+   set_env('NEW_FEATURE', True)
+   os.setenv('NEW_FEATURE', True)   # equivalent, after patch_os_module()
 
-   # Find by keys
-   os.find("DB_*") # return dict
+   # Find by key pattern
+   os.find("DB_*")  # -> dict of matching DB_* variables
+
+   # Edit the config file on disk, then just read again - no restart needed
+   print(get_env('DEBUG'))   # reflects the file's current content
 
 Installation
 ------------
@@ -86,8 +108,11 @@ Installation
    # With YAML support
    pip install envdot[yaml]
 
-   # With all extras
-   pip install envdot[all]
+   # With TOML support (Python < 3.11 also needs tomli)
+   pip install envdot[toml]
+
+   # With every optional extra
+   pip install envdot[full]
 
 Documentation Contents
 ----------------------
@@ -106,6 +131,8 @@ Documentation Contents
    usage/basic
    usage/file-formats
    usage/type-detection
+   usage/auto-reload
+   usage/system-env-watch
    usage/advanced
 
 .. toctree::
@@ -115,6 +142,7 @@ Documentation Contents
    api/dotenv
    api/functions
    api/helpers
+   api/sysenv
    api/exceptions
 
 .. toctree::
@@ -125,7 +153,7 @@ Documentation Contents
    changelog
 
 Indices and tables
-------------------
+-------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
@@ -149,7 +177,7 @@ Author
 Created by `Hadi Cahyadi <mailto:cumulus13@gmail.com>`_
 
 Support the Project
--------------------
+--------------------
 
 * `Buy Me a Coffee <https://www.buymeacoffee.com/cumulus13>`_
 * `Ko-fi <https://ko-fi.com/cumulus13>`_

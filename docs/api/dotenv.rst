@@ -8,16 +8,24 @@ The ``DotEnv`` class is the main interface for managing environment variables.
    :synopsis: Enhanced environment variable management
 
 Class Reference
----------------
+----------------
 
-.. class:: DotEnv(filepath=None, auto_load=True)
+.. class:: DotEnv(filepath=None, auto_load=True, newone=False)
 
    Main class for environment variable management.
 
-   :param filepath: Path to configuration file (optional)
+   :param filepath: Path to a configuration file. If given but the file
+      does not exist, it is kept as-is (not silently swapped for an
+      auto-discovered file) so ``load()`` can correctly report it's
+      missing. If omitted, envdot searches for a supported config file
+      (``.env`` by default).
    :type filepath: str or Path or None
-   :param auto_load: Automatically load file on initialization (default: True)
+   :param auto_load: Automatically call :meth:`load` on construction
+      (default: ``True``).
    :type auto_load: bool
+   :param newone: If no config file can be found/given, create a new
+      empty ``.env`` instead of staying unconfigured.
+   :type newone: bool
 
    **Example:**
 
@@ -25,32 +33,42 @@ Class Reference
 
       from envdot import DotEnv
 
-      # Auto-load from .env
-      env = DotEnv('.env')
+      env = DotEnv('.env')                      # auto-load from .env
+      env = DotEnv('.env', auto_load=False)      # create without loading
+      env = DotEnv()                             # auto-discover a config file
 
-      # Create without loading
-      env = DotEnv('.env', auto_load=False)
-
-Methods
+Loading
 -------
 
 load()
 ~~~~~~
 
-.. method:: DotEnv.load(filepath=None, override=True, apply_to_os=True)
+.. method:: DotEnv.load(filepath=None, override=True, apply_to_os=True, store_typed=True, recursive=True, newone=False, os_overwrite=False, **kwargs)
 
    Load environment variables from a file.
 
-   :param filepath: Path to file (uses instance filepath if not specified)
+   :param filepath: Path to file (uses the instance's tracked filepath if
+      not specified).
    :type filepath: str or Path or None
-   :param override: Whether to override existing values (default: True)
+   :param override: Whether to override already-loaded values for keys
+      also present in the file (default: ``True``).
    :type override: bool
-   :param apply_to_os: Whether to apply values to os.environ (default: True)
+   :param apply_to_os: Whether to mirror loaded values into ``os.environ``
+      (default: ``True``). See :doc:`../usage/auto-reload` for exactly
+      when an already-set ``os.environ`` entry is or isn't overwritten.
    :type apply_to_os: bool
-   :returns: Self for method chaining
+   :param os_overwrite: Force-overwrite ``os.environ`` even for a value
+      envdot doesn't recognize as its own (default: ``False``).
+   :type os_overwrite: bool
+   :param recursive: Search subdirectories when no filepath is known and
+      one must be auto-discovered (default: ``True``).
+   :type recursive: bool
+   :returns: ``self``, for method chaining.
    :rtype: DotEnv
-   :raises FileNotFoundError: If the specified file doesn't exist
-   :raises ParseError: If the file cannot be parsed
+   :raises envdot.exceptions.FileNotFoundError: If an *explicit* filepath
+      (given here or at construction) doesn't exist. A filepath that was
+      never given at all (auto-discovery finding nothing) does not raise.
+   :raises envdot.exceptions.ParseError: If the file can't be parsed.
 
    **Example:**
 
@@ -70,22 +88,52 @@ load()
       # Load without affecting os.environ
       env.load(apply_to_os=False)
 
+check_file()
+~~~~~~~~~~~~~
+
+.. method:: DotEnv.check_file()
+
+   Check whether the tracked config file's content has changed since the
+   last load, using a content hash comparison.
+
+   :returns: ``True`` if nothing changed (safe to skip a reload), ``False``
+      if a reload is needed. Calling this does **not** itself reload the
+      file — see :meth:`get` and the other read methods, which call this
+      internally and reload automatically when it returns ``False``.
+   :rtype: bool
+
+Getting Values
+--------------
+
 get()
 ~~~~~
 
-.. method:: DotEnv.get(key, default=None, cast_type=None)
+.. method:: DotEnv.get(key, default=None, cast_type=None, reload=True, with_os=True)
 
    Get an environment variable with automatic type detection.
 
-   :param key: The variable name
+   :param key: The variable name.
    :type key: str
-   :param default: Default value if key doesn't exist
+   :param default: Value to return if the key doesn't exist.
    :type default: Any
-   :param cast_type: Force conversion to specific type (int, float, bool, str)
+   :param cast_type: Force conversion to a specific type
+      (``int``, ``float``, ``bool``, ``str``, ``list``, ``tuple``, ``dict``).
+      Always casts from the original raw string, not from an
+      already-auto-detected value.
    :type cast_type: type or None
-   :returns: The value with detected or cast type
+   :param reload: If ``True`` (default), checks the config file's content
+      hash and reloads if it changed. Pass ``False`` to skip that check
+      for this call.
+   :type reload: bool
+   :param with_os: If ``True`` (default), falls back to ``os.environ`` for
+      a key envdot has no value of its own for, and picks up a direct
+      ``os.environ[key] = ...`` change made after envdot last wrote that
+      key. See :doc:`../usage/auto-reload`.
+   :type with_os: bool
+   :returns: The value with detected or cast type.
    :rtype: Any
-   :raises TypeConversionError: If cast_type is specified and conversion fails
+   :raises envdot.exceptions.TypeConversionError: If ``cast_type`` is
+      given and conversion fails.
 
    **Example:**
 
@@ -102,21 +150,29 @@ get()
 
       # Get with explicit type casting
       version = env.get('PORT', cast_type=str)
+      hosts = env.get('ALLOWED_HOSTS', cast_type=list)
+
+Setting Values
+--------------
 
 set()
 ~~~~~
 
 .. method:: DotEnv.set(key, value, apply_to_os=True)
 
-   Set an environment variable.
+   Set an environment variable. A **string** value is auto-detected the
+   same way a value loaded from a file would be (so ``set('EMPTY', '')``
+   -> ``None``, ``set('COUNT', '5')`` -> ``int`` ``5``); a non-string
+   value you pass directly is stored exactly as given.
 
-   :param key: The variable name
+   :param key: The variable name.
    :type key: str
-   :param value: The value to set
+   :param value: The value to set.
    :type value: Any
-   :param apply_to_os: Whether to also set in os.environ (default: True)
+   :param apply_to_os: Whether to also set it in ``os.environ``
+      (default: ``True``).
    :type apply_to_os: bool
-   :returns: Self for method chaining
+   :returns: ``self``, for method chaining.
    :rtype: DotEnv
 
    **Example:**
@@ -134,18 +190,23 @@ set()
       # Set without affecting os.environ
       env.set('INTERNAL', 'value', apply_to_os=False)
 
+Persisting Changes
+---------------------
+
 save()
 ~~~~~~
 
 .. method:: DotEnv.save(filepath=None, format=None)
 
-   Save environment variables to a file.
+   Save the current variables to a file.
 
-   :param filepath: Path to save file (uses instance filepath if not specified)
+   :param filepath: Path to save to (uses the instance's tracked filepath
+      if not specified).
    :type filepath: str or Path or None
-   :param format: File format ('env', 'json', 'yaml', 'ini') - auto-detected from extension if not specified
+   :param format: File format (``env``, ``json``, ``yaml``, ``ini``,
+      ``toml``) — auto-detected from the extension if not given.
    :type format: str or None
-   :returns: Self for method chaining
+   :returns: ``self``, for method chaining.
    :rtype: DotEnv
 
    **Example:**
@@ -155,198 +216,209 @@ save()
       env = DotEnv('.env')
       env.set('NEW_KEY', 'value')
 
-      # Save to original file
-      env.save()
-
-      # Save to new file
-      env.save('backup.env')
-
-      # Convert to different format
-      env.save('config.json')
+      env.save()                # to the original file
+      env.save('backup.env')    # to a new file
+      env.save('config.json')   # convert to a different format
 
 delete()
-~~~~~~~~
+~~~~~~~~~
 
 .. method:: DotEnv.delete(key, remove_from_os=True)
 
-   Delete an environment variable.
+   Delete a variable.
 
-   :param key: The variable name to delete
+   :param key: The variable name to delete.
    :type key: str
-   :param remove_from_os: Whether to also remove from os.environ (default: True)
+   :param remove_from_os: Whether to also remove it from ``os.environ``
+      (default: ``True``).
    :type remove_from_os: bool
-   :returns: Self for method chaining
+   :returns: ``self``, for method chaining.
    :rtype: DotEnv
 
-   **Example:**
-
-   .. code-block:: python
-
-      env = DotEnv('.env')
-
-      # Delete from envdot and os.environ
-      env.delete('OLD_KEY')
-
-      # Delete from envdot only
-      env.delete('TEMP_KEY', remove_from_os=False)
-
-all()
-~~~~~
-
-.. method:: DotEnv.all()
-
-   Get all environment variables as a dictionary.
-
-   :returns: Dictionary of all variables
-   :rtype: dict
-
-   **Example:**
-
-   .. code-block:: python
-
-      env = DotEnv('.env')
-      all_vars = env.all()
-
-      for key, value in all_vars.items():
-          print(f"{key} = {value} ({type(value).__name__})")
-
-keys()
-~~~~~~
-
-.. method:: DotEnv.keys()
-
-   Get all variable names.
-
-   :returns: List of variable names
-   :rtype: list
-
-   **Example:**
-
-   .. code-block:: python
-
-      env = DotEnv('.env')
-      for key in env.keys():
-          print(key)
-
 clear()
-~~~~~~~
+~~~~~~~~
 
 .. method:: DotEnv.clear(clear_os=False)
 
    Clear all stored variables.
 
-   :param clear_os: Whether to also clear from os.environ (default: False)
+   :param clear_os: Whether to also remove them from ``os.environ``
+      (default: ``False``).
    :type clear_os: bool
-   :returns: Self for method chaining
+   :returns: ``self``, for method chaining.
    :rtype: DotEnv
 
-   **Example:**
+Reading Everything
+--------------------
 
-   .. code-block:: python
+Every method in this section re-checks the config file's content hash
+first, the same way :meth:`get` does — see :doc:`../usage/auto-reload`.
 
-      env = DotEnv('.env')
-
-      # Clear internal storage only
-      env.clear()
-
-      # Clear both internal storage and os.environ
-      env.clear(clear_os=True)
-
-show()
+all()
 ~~~~~~
 
-.. method:: DotEnv.show()
+.. method:: DotEnv.all()
 
-   Display all environment variables.
+   :returns: ``os.environ`` merged with envdot's own loaded data (its own
+      data wins on overlap).
+   :rtype: dict
 
-   :returns: Dictionary of all variables (also prints to console)
+show()
+~~~~~~~
+
+.. method:: DotEnv.show(all=False)
+
+   :param all: If ``True``, equivalent to :meth:`all`; if ``False``
+      (default), returns just envdot's own loaded data.
+   :type all: bool
+   :returns: Dictionary of variables.
+   :rtype: dict
+
+keys()
+~~~~~~~
+
+.. method:: DotEnv.keys(all=False)
+
+   :param all: Same meaning as in :meth:`show`.
+   :type all: bool
+   :returns: List of variable names.
+   :rtype: list
+
+Searching and Filtering
+----------------------------
+
+See :doc:`../usage/advanced` for full usage examples of this group.
+
+find()
+~~~~~~~
+
+.. method:: DotEnv.find(pattern, mode='wildcard', case_sensitive=True, return_dict=True, reload=False)
+
+   Find keys matching a pattern.
+
+   :param pattern: A wildcard (``DB_*``), regex, or plain substring
+      pattern, depending on ``mode``.
+   :type pattern: str
+   :param mode: ``'wildcard'`` (default), ``'regex'``, or ``'contains'``.
+   :type mode: str
+   :returns: Matching ``{key: value}`` pairs (or a list of ``(key, value)``
+      tuples if ``return_dict=False``).
+   :rtype: dict or list
+
+find_wildcard() / find_regex() / find_contains()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. method:: DotEnv.find_wildcard(pattern, **kwargs)
+.. method:: DotEnv.find_regex(pattern, **kwargs)
+.. method:: DotEnv.find_contains(pattern, **kwargs)
+
+   Shortcuts for :meth:`find` with a fixed ``mode``.
+
+find_keys()
+~~~~~~~~~~~~
+
+.. method:: DotEnv.find_keys(pattern, mode='wildcard', **kwargs)
+
+   :returns: Just the matching key names.
+   :rtype: list[str]
+
+find_values()
+~~~~~~~~~~~~~~
+
+.. method:: DotEnv.find_values(value_pattern, case_sensitive=False, **kwargs)
+
+   Find entries whose **value** matches ``value_pattern``.
+
+   :returns: Matching ``{key: value}`` pairs.
+   :rtype: dict
+
+filter()
+~~~~~~~~~
+
+.. method:: DotEnv.filter(predicate)
+
+   :param predicate: A ``callable(key, value) -> bool``.
+   :returns: Entries for which ``predicate`` returned true-y.
    :rtype: dict
 
    **Example:**
 
    .. code-block:: python
 
-      env = DotEnv('.env')
-      env.show()
+      env.filter(lambda k, v: isinstance(v, str) and v.strip())
+
+search()
+~~~~~~~~~
+
+.. method:: DotEnv.search(pattern, value=None, mode='wildcard', **kwargs)
+
+   Search by key pattern and, optionally, an additional value pattern.
+
+System Environment Watching
+--------------------------------
+
+See :doc:`../usage/system-env-watch` for full details.
+
+enable_system_watch()
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. method:: DotEnv.enable_system_watch(ignore=('PATH',), min_interval=0.25, backend=None)
+
+   Start applying persistent (Windows registry / Linux env-file)
+   environment changes made outside this process.
+
+   :returns: ``True`` if the current platform is supported, ``False``
+      otherwise (always safe to call either way).
+   :rtype: bool
+
+disable_system_watch()
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. method:: DotEnv.disable_system_watch()
+
+   Stop applying persistent environment changes.
 
 Magic Methods
 -------------
 
-__getitem__
-~~~~~~~~~~~
+__getitem__ / __setitem__ / __contains__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. method:: DotEnv.__getitem__(key)
+.. code-block:: python
 
-   Dictionary-style access for getting values.
+   env = DotEnv('.env')
 
-   **Example:**
+   value = env['DATABASE_URL']
+   env['NEW_KEY'] = 'value'
+   if 'API_KEY' in env:
+       ...
 
-   .. code-block:: python
+__getattr__ / __setattr__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-      env = DotEnv('.env')
-      value = env['DATABASE_URL']
+.. code-block:: python
 
-__setitem__
-~~~~~~~~~~~
+   config = DotEnv('.env')
 
-.. method:: DotEnv.__setitem__(key, value)
+   debug = config.DEBUG
+   config.PORT = 9000
 
-   Dictionary-style access for setting values.
+__call__
+~~~~~~~~~
 
-   **Example:**
+.. method:: DotEnv.__call__(key, value=None, default=None)
 
-   .. code-block:: python
-
-      env = DotEnv('.env')
-      env['NEW_KEY'] = 'value'
-
-__contains__
-~~~~~~~~~~~~
-
-.. method:: DotEnv.__contains__(key)
-
-   Check if a key exists using ``in`` operator.
-
-   **Example:**
+   Calling an instance is a shortcut: with just a ``key`` it behaves like
+   :meth:`get`; passing ``value`` behaves like :meth:`set`.
 
    .. code-block:: python
 
       env = DotEnv('.env')
-      if 'API_KEY' in env:
-          print("API key is configured")
-
-__getattr__
-~~~~~~~~~~~
-
-.. method:: DotEnv.__getattr__(key)
-
-   Attribute-style access for getting values.
-
-   **Example:**
-
-   .. code-block:: python
-
-      config = DotEnv('.env')
-      debug = config.DEBUG
-      port = config.PORT
-
-__setattr__
-~~~~~~~~~~~
-
-.. method:: DotEnv.__setattr__(key, value)
-
-   Attribute-style access for setting values.
-
-   **Example:**
-
-   .. code-block:: python
-
-      config = DotEnv('.env')
-      config.DEBUG = True
-      config.PORT = 9000
+      env('DEBUG')            # get
+      env('DEBUG', True)      # set
 
 __repr__
-~~~~~~~~
+~~~~~~~~~
 
 .. method:: DotEnv.__repr__()
 

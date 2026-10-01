@@ -2,23 +2,37 @@
 Convenience Functions
 ======================
 
-envdot provides module-level convenience functions for quick and easy access 
-to environment variables without needing to instantiate the ``DotEnv`` class.
+Module-level convenience functions that operate on a shared global
+``DotEnv`` instance, so you don't have to instantiate ``DotEnv`` yourself
+for simple scripts.
 
 .. module:: envdot
+   :no-index:
    :synopsis: Convenience functions for environment variable management
 
 load_env()
 ----------
 
-.. function:: load_env(filepath=None, **kwargs)
+.. function:: load_env(filepath=None, auto_replace_getenv=True, apply_to_os=True, patch_os=True, debugging=False, watch_system_env=False, **kwargs)
 
-   Load environment variables from a file.
+   Load environment variables from a file into the shared global instance.
 
-   :param filepath: Path to configuration file (default: '.env')
+   :param filepath: Path to configuration file (auto-discovered, ``.env``
+      by default, if omitted).
    :type filepath: str or Path or None
-   :param kwargs: Additional arguments passed to DotEnv.load()
-   :returns: DotEnv instance for method chaining or attribute access
+   :param auto_replace_getenv: Replace ``os.getenv`` with a typed version
+      (default: ``True``). See :func:`replace_os_getenv`.
+   :type auto_replace_getenv: bool
+   :param patch_os: Also patch the ``os`` module with extra helpers like
+      ``os.setenv``, ``os.find``, ``os.save_env`` (default: ``True``).
+      See :func:`envdot.patch_os_module`.
+   :type patch_os: bool
+   :param watch_system_env: Also start :doc:`../usage/system-env-watch`
+      (default: ``False``).
+   :type watch_system_env: bool
+   :param kwargs: Passed through to :meth:`DotEnv.load`.
+   :returns: The shared global ``DotEnv`` instance, for attribute access
+      or chaining.
    :rtype: DotEnv
 
    **Example:**
@@ -32,6 +46,7 @@ load_env()
 
       # Load from specific file
       config = load_env('config/production.env')
+      config = load_env(watch_system_env=True)
 
       # Access values via attributes
       print(config.DEBUG)
@@ -40,9 +55,10 @@ load_env()
 get_env()
 ---------
 
-.. function:: get_env(key, default=None, cast_type=None)
+.. function:: get_env(key, default=None, cast_type=None, **kwargs)
 
-   Get an environment variable with automatic type detection.
+   Get a variable from the shared global instance. ``kwargs`` are passed
+   through to :meth:`DotEnv.get` (e.g. ``reload=False``, ``with_os=False``).
 
    :param key: The variable name
    :type key: str
@@ -74,9 +90,9 @@ get_env()
 set_env()
 ---------
 
-.. function:: set_env(key, value, **kwargs)
+.. function:: set_env(key, value=None, option=None, **kwargs)
 
-   Set an environment variable.
+   Set a variable on the shared global instance.
 
    :param key: The variable name
    :type key: str
@@ -100,7 +116,7 @@ save_env()
 
 .. function:: save_env(filepath=None, **kwargs)
 
-   Save environment variables to a file.
+   Save the shared global instance's variables to a file.
 
    :param filepath: Path to save file
    :type filepath: str or Path or None
@@ -130,7 +146,8 @@ show()
 
 .. function:: show()
 
-   Display all loaded environment variables.
+   Display all loaded variables from the shared global instance (same as
+   ``DotEnv.show()``).
 
    :returns: Dictionary of all variables
    :rtype: dict
@@ -144,16 +161,35 @@ show()
       load_env()
       show()
 
-      # Output:
-      # {'DEBUG': True,
-      #  'PORT': 8080,
-      #  'DATABASE_URL': 'postgresql://localhost/mydb',
-      #  ...}
+find_env() / filter_env() / search_env()
+--------------------------------------------
+
+.. function:: find_env(pattern, mode='wildcard', **kwargs)
+.. function:: filter_env(predicate)
+.. function:: search_env(pattern, value=None, mode='wildcard', **kwargs)
+
+   Module-level equivalents of :meth:`DotEnv.find`, :meth:`DotEnv.filter`,
+   and :meth:`DotEnv.search` on the shared global instance. Import these
+   from :mod:`envdot.core` (they aren't re-exported from the top-level
+   ``envdot`` package):
+
+   .. code-block:: python
+
+      from envdot.core import find_env, filter_env, search_env
+
+      find_env('DB_*')
+
+sync_system_env()
+-------------------
+
+.. function:: sync_system_env()
+
+   Apply any pending persistent environment changes on the shared global
+   instance immediately, if :doc:`../usage/system-env-watch` is enabled.
+   Import from :mod:`envdot.core`.
 
 Combined Example
-----------------
-
-Here's a complete example using all convenience functions:
+------------------
 
 .. code-block:: python
 
@@ -186,12 +222,11 @@ Here's a complete example using all convenience functions:
 
    print("\nConfiguration updated and saved!")
 
-Comparison: Functions vs Class
-------------------------------
+Functions vs the DotEnv Class
+----------------------------------
 
-Both approaches are equivalent. Choose based on your preference:
-
-**Using convenience functions:**
+**Using convenience functions** (share one global instance — ideal for
+simple scripts):
 
 .. code-block:: python
 
@@ -202,7 +237,8 @@ Both approaches are equivalent. Choose based on your preference:
    set_env('PORT', 9000)
    save_env()
 
-**Using DotEnv class:**
+**Using the DotEnv class** (own instance — better for multiple
+configuration files or more complex applications):
 
 .. code-block:: python
 

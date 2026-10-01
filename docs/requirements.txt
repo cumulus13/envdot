@@ -14,5 +14,10 @@ sphinx-autodoc-typehints>=1.24.0
 # Optional: for better code highlighting
 pygments>=2.16.0
 
-# Project dependencies (needed for autodoc)
-PyYAML>=5.1
+# Project dependencies needed for autodoc to import envdot cleanly.
+# (conf.py also mocks these via autodoc_mock_imports as a fallback, but
+# installing them for real gives more accurate signatures/docstrings.)
+PyYAML>=6.0.1
+tomli>=2.0.1; python_version < "3.11"
+tomli-w>=1.0.0
+pathlib3

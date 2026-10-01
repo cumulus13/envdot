@@ -8,7 +8,7 @@ Load Options
 ------------
 
 Override Behavior
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 Control whether existing values are overwritten:
 
@@ -18,14 +18,11 @@ Control whether existing values are overwritten:
 
    env = DotEnv('.env')
 
-   # Default: override existing values
-   env.load(override=True)
-
-   # Keep existing values, only add new ones
-   env.load(override=False)
+   env.load(override=True)   # default: override existing values
+   env.load(override=False)  # keep existing values, only add new ones
 
 OS Environment Sync
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 Control synchronization with ``os.environ``:
 
@@ -41,7 +38,7 @@ Control synchronization with ``os.environ``:
    env.set('INTERNAL_KEY', 'value', apply_to_os=False)
 
 Multiple Configuration Files
-----------------------------
+--------------------------------
 
 Load from multiple sources:
 
@@ -60,14 +57,14 @@ Load from multiple sources:
    # Add local overrides
    env.load('.env.local', override=True)
 
-Priority order (last wins):
+Priority order (last wins): ``.env`` -> ``.env.production`` -> ``.env.local``.
 
 1. ``.env`` - Base configuration
 2. ``.env.production`` - Environment-specific
 3. ``.env.local`` - Local developer overrides
 
 Environment-Based Loading
--------------------------
+-----------------------------
 
 Load different configurations based on environment:
 
@@ -75,6 +72,7 @@ Load different configurations based on environment:
 
    import os
    from envdot import DotEnv
+   from envdot.exceptions import FileNotFoundError as EnvdotFileNotFoundError
 
    def load_config():
        env = DotEnv(auto_load=False)
@@ -88,6 +86,8 @@ Load different configurations based on environment:
 
        try:
            env.load(env_file, override=True)
+       except EnvdotFileNotFoundError:
+           pass  # environment-specific file is optional
        except FileNotFoundError:
            pass  # Environment-specific file is optional
 
@@ -95,10 +95,65 @@ Load different configurations based on environment:
 
    config = load_config()
 
-Custom Type Handlers
---------------------
+.. note::
 
-For complex types, process values after loading:
+   Catch ``envdot.exceptions.FileNotFoundError``, not the builtin
+   ``FileNotFoundError`` — envdot defines its own exception of that name
+   (see :doc:`../api/exceptions`). If you ``import envdot`` and then
+   ``from envdot.exceptions import FileNotFoundError``, that import shadows
+   the builtin in your module's namespace, which is convenient here but
+   worth being deliberate about elsewhere in the same file.
+
+Searching, Filtering, and Finding Keys
+-------------------------------------------
+
+Beyond simple ``get()``, envdot can search across all loaded variables:
+
+.. code-block:: python
+
+   from envdot import DotEnv
+
+   env = DotEnv('.env')
+
+   # Wildcard, regex, or "contains" key matching
+   env.find('DB_*')                            # wildcard (default mode)
+   env.find(r'^API_\w+_KEY$', mode='regex')
+   env.find('DB', mode='contains')
+
+   env.find_wildcard('DB_*')                   # shortcuts for each mode
+   env.find_regex(r'^API_\w+_KEY$')
+   env.find_contains('DB')
+
+   env.find_keys('DB_*')                       # just the matching key names
+
+   # Search by VALUE pattern instead of key
+   env.find_values('postgres*')
+
+   # Arbitrary predicate over (key, value) pairs
+   env.filter(lambda k, v: isinstance(v, str) and v.strip())
+
+   # Search key AND/OR value together
+   env.search('DB_*', value='postgres*')
+
+The module-level equivalents (``find_env``, ``filter_env``, ``search_env``)
+operate on the shared global instance the same way ``get_env``/``set_env`` do:
+
+.. code-block:: python
+
+   from envdot.core import find_env, filter_env, search_env
+
+   find_env('DB_*')
+
+After ``patch_os_module()``, these are also available as ``os.find()``,
+``os.filter()``, and ``os.search()``.
+
+All of these go through the same auto-reload check as ``get()`` — see
+:doc:`auto-reload`.
+
+Custom Type Handlers
+-----------------------
+
+For types envdot doesn't cast to directly, post-process after loading:
 
 .. code-block:: python
 
@@ -107,18 +162,18 @@ For complex types, process values after loading:
 
    env = DotEnv('.env')
 
-   # Parse JSON arrays
+   # Parse a JSON array value manually if you need something cast_type
+   # doesn't cover directly
    # ALLOWED_HOSTS=["localhost", "127.0.0.1"]
    hosts_str = env.get('ALLOWED_HOSTS', cast_type=str)
    allowed_hosts = json.loads(hosts_str) if hosts_str else []
 
-   # Parse comma-separated lists
-   # CORS_ORIGINS=http://localhost:3000,http://localhost:8080
-   origins_str = env.get('CORS_ORIGINS', default='')
-   cors_origins = [o.strip() for o in origins_str.split(',') if o.strip()]
+   # cast_type=list/tuple already handles simple comma/whitespace-separated
+   # values and bracketed literals directly - see usage/type-detection
+   cors_origins = env.get('CORS_ORIGINS', cast_type=list, default=[])
 
 Configuration Classes
----------------------
+------------------------
 
 Create structured configuration classes:
 
@@ -173,12 +228,7 @@ Validate required variables:
    from envdot import DotEnv
 
    def validate_config(env: DotEnv):
-       required_keys = [
-           'DATABASE_URL',
-           'SECRET_KEY',
-           'API_KEY',
-       ]
-
+       required_keys = ['DATABASE_URL', 'SECRET_KEY', 'API_KEY']
        missing = [key for key in required_keys if key not in env]
 
        if missing:
@@ -188,7 +238,7 @@ Validate required variables:
    validate_config(env)
 
 Value Validation
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 
 Validate value ranges and formats:
 
@@ -217,7 +267,7 @@ Validate value ranges and formats:
    validate_values(env)
 
 Context Managers
-----------------
+-----------------
 
 Use envdot in temporary contexts:
 
@@ -283,10 +333,30 @@ Defer loading until first access:
    # First access triggers loading
    config = LazyConfig.get_instance()
 
-Watching for Changes
---------------------
+Watching for File Changes
+-----------------------------
 
-Monitor configuration file changes (requires watchdog):
+You generally don't need a file watcher — every ``get()``/``show()``/etc.
+call already checks the file's content hash and reloads automatically if
+it changed (see :doc:`auto-reload`). If you specifically want to run code
+*at the moment* a change is detected (e.g. logging "reloaded config"),
+poll ``check_file()`` yourself:
+
+.. code-block:: python
+
+   from envdot import DotEnv
+   import time
+
+   env = DotEnv('.env')
+
+   while True:
+       if not env.check_file():          # False means "changed, was reloaded"
+           print("Configuration changed and was reloaded")
+       time.sleep(1)
+
+For environment variables changed **outside the process** (registry /
+``/etc/environment``), see :doc:`system-env-watch` instead — that's a
+different mechanism from file-content watching.
 
 .. code-block:: python
 
@@ -337,7 +407,7 @@ For multi-threaded applications:
    config = ThreadSafeConfig.get_instance()
 
 Testing with envdot
--------------------
+--------------------
 
 Mock configuration in tests:
 

@@ -18,8 +18,8 @@ copyright = f'{datetime.now().year}, Hadi Cahyadi'
 author = 'Hadi Cahyadi'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0.14'
-version = '1.0.14'
+release = '1.0.44'
+version = '1.0.44'
 
 # -- General configuration ---------------------------------------------------
 extensions = [
@@ -53,10 +53,11 @@ napoleon_type_aliases = None
 autodoc_default_options = {
     'members': True,
     'member-order': 'bysource',
-    'special-members': '__init__',
+    'special-members': '__init__, __getitem__, __setitem__, __contains__, __getattr__, __call__',
     'undoc-members': True,
-    'exclude-members': '__weakref__'
+    'exclude-members': '__weakref__, __dict__, __module__',
 }
+autodoc_mock_imports = ['yaml', 'tomli', 'tomli_w', 'json5', 'richcolorlog', 'pydebugger', 'pathlib3', 'winreg']
 autodoc_typehints = 'description'
 autosummary_generate = True
 

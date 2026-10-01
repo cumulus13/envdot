@@ -6,21 +6,21 @@
 # License: MIT
 
 
-class DotEnvError(Exception):
+class EnvDotError(Exception):
     """Base exception for envdot errors"""
     pass
 
 
-class FileNotFoundError(DotEnvError):
+class FileNotFoundError(EnvDotError):
     """Raised when the configuration file is not found"""
     pass
 
 
-class ParseError(DotEnvError):
+class ParseError(EnvDotError):
     """Raised when there's an error parsing the configuration file"""
     pass
 
 
-class TypeConversionError(DotEnvError):
+class TypeConversionError(EnvDotError):
     """Raised when type conversion fails"""
     pass
