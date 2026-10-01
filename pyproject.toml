@@ -1,19 +1,23 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm>=6.2"]
+requires = [
+    "setuptools>=45",
+    "wheel",
+    "setuptools_scm>=6.2",
+]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "envdot"
-version = "1.0.43"
+version = "1.0.46"
 description = "Enhanced environment variable management with multi-format support (.env, JSON, YAML, INI, TOML)"
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
 authors = [
-    {name = "Hadi Cahyadi", email = "cumulus13@gmail.com"}
+    { name = "Hadi Cahyadi", email = "cumulus13@gmail.com" },
 ]
 maintainers = [
-    {name = "Hadi Cahyadi", email = "cumulus13@gmail.com"}
+    { name = "Hadi Cahyadi", email = "cumulus13@gmail.com" },
 ]
 keywords = [
     "environment",
@@ -25,7 +29,7 @@ keywords = [
     "json",
     "toml",
     "ini",
-    "settings"
+    "settings",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -39,9 +43,12 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: System :: Systems Administration",
-    "Topic :: Utilities"
+    "Topic :: Utilities",
 ]
-dependencies = ["version_get", "pathlib3"]
+dependencies = [
+    "version_get",
+    "pathlib3",
+]
 
 [project.optional-dependencies]
 full = [
@@ -50,22 +57,28 @@ full = [
     "tomli-w>=1.0.0",
     "json5>=0.9.14",
     "richcolorlog>=0.1.0",
-    "pathlib3"
+    "pathlib3",
 ]
-yaml = ["pyyaml>=6.0.1"]
+yaml = [
+    "pyyaml>=6.0.1",
+]
 toml = [
     "tomli>=2.0.1;python_version<'3.11'",
-    "tomli-w>=1.0.0"
+    "tomli-w>=1.0.0",
 ]
-json5 = ["json5>=0.9.14"]
-rich = ["richcolorlog>=0.1.0"]
+json5 = [
+    "json5>=0.9.14",
+]
+rich = [
+    "richcolorlog>=0.1.0",
+]
 dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
     "black>=23.0.0",
     "flake8>=6.0.0",
     "mypy>=1.5.0",
-    "pre-commit>=3.3.0"
+    "pre-commit>=3.3.0",
 ]
 
 [project.urls]
@@ -76,20 +89,20 @@ Repository = "https://github.com/cumulus13/envdot"
 
 [tool.black]
 line-length = 100
-target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.venv
-  | \.eggs
-  | build
-  | dist
-)/
-'''
+target-version = [
+    "py38",
+    "py39",
+    "py310",
+    "py311",
+    "py312",
+]
+include = "\\.pyi?$"
+exclude = "/(\n    \\.git\n  | \\.venv\n  | \\.eggs\n  | build\n  | dist\n)/\n"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = [
+    "tests",
+]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
@@ -98,13 +111,21 @@ addopts = [
     "--cov=envdot",
     "--cov-report=html",
     "--cov-report=term-missing",
-    "--cov-branch"
+    "--cov-branch",
 ]
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["envdot*"]
-exclude = ["tests*", "docs*", "examples*"]
+where = [
+    ".",
+]
+include = [
+    "envdot*",
+]
+exclude = [
+    "tests*",
+    "docs*",
+    "examples*",
+]
 
 [tool.mypy]
 python_version = "3.8"
@@ -128,17 +149,19 @@ module = [
     "tomli_w.*",
     "json5.*",
     "richcolorlog.*",
-    "version_get.*"
+    "version_get.*",
 ]
 ignore_missing_imports = true
 
 [tool.coverage.run]
-source = ["envdot"]
+source = [
+    "envdot",
+]
 omit = [
     "tests/*",
     "*/tests/*",
     "*/__pycache__/*",
-    "*/site-packages/*"
+    "*/site-packages/*",
 ]
 
 [tool.coverage.report]
@@ -149,5 +172,5 @@ exclude_lines = [
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
-    "@abstractmethod"
+    "@abstractmethod",
 ]
