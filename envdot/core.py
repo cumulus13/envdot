@@ -22,14 +22,22 @@ from typing import Any, Dict, Optional, Union, List
 from .exceptions import ParseError, TypeConversionError, FileNotFoundError
 import warnings
 
+# set_or_dict
+try:
+    from . set_or_dict import set_or_dict  # type: ignore
+except:
+    from set_or_dict import set_or_dict  # type: ignore
+
 ENVDOT_CONFIGFILE = ""
 
+# json5
 try:
     import json5
     HAS_JSON5 = True
 except ImportError:
     HAS_JSON5 = False
 
+# tomli
 try:
     import tomli  # Python 3.11+ has tomllib built-in
     HAS_TOML = True
@@ -257,7 +265,7 @@ class TypeDetector:
                             return ast.literal_eval(s)
                         except Exception:
                             if HAS_JSON5:
-                                return json5.loads(s)
+                                return json5.loads(s)  # type: ignore
                             raise
                 if ':' in s:
                     return {
@@ -276,7 +284,9 @@ class TypeDetector:
                 if s.startswith(('[', '(')) and s.endswith((']', ')')):
                     parsed = ast.literal_eval(s)
                     return cast_type(parsed)
-                parts = [i.strip() for i in re.split(r'[,\s]+', s) if i.strip()]
+                # parts = [i.strip() for i in re.split(r'[,\s]+', s) if i.strip()]
+                # The characters to strip are combined into a single string: "\"' "
+                parts = [i.strip("\"'") for i in re.split(r'[,\s]+', s) if i.strip()]
                 return cast_type(parts)
             return cast_type([raw])
 
@@ -284,7 +294,6 @@ class TypeDetector:
         if isinstance(raw, str):
             return cast_type(raw.strip())
         return cast_type(raw)
-
 
 class FileHandler:
     """Handle different file format operations"""
@@ -543,7 +552,6 @@ class FileHandler:
         with open(filepath, 'wb') as f:
             tomli_w.dump(data, f)
 
-
 class DotEnvMeta(type):
     """Metaclass to enable attribute-style access and automatic saving"""
     
@@ -780,7 +788,8 @@ class DotEnv(metaclass=DotEnvMeta):
         filepath: Optional[Union[str, Path]] = None, 
          override: bool = True, 
          apply_to_os: bool = True,
-         store_typed: bool = True, recursive: bool = True, 
+         store_typed: bool = True, 
+         recursive: bool = True, 
          newone: bool = False, 
          os_overwrite: bool = False, 
          **kwargs
@@ -942,7 +951,7 @@ class DotEnv(metaclass=DotEnvMeta):
         """
         check = self.check_file()
         # print(f"check: {check}")
-        if not check:
+        if not check: # file hash changed == not same
             self.load(self._filepath, apply_to_os=True, os_overwrite=True)
         self._sync_system_env()
 
@@ -991,19 +1000,37 @@ class DotEnv(metaclass=DotEnvMeta):
                 self._synced_os.pop(key, None)
                 self._sys_applied.discard(key)
 
-    def get(self, key: str, default: Any = None, cast_type: Optional[type] = None, reload: Optional[bool] = True, with_os: Optional[bool] = True) -> Any:
+    @staticmethod
+    def _trace() -> None:
+        if any(i in ('1', 'true', 'yes', 'ok', 'on') for i in (str(os.getenv('TRACEBACK', '0')).lower(), str(os.getenv('ENVDOT_DEBUG', '0')).lower())) :
+            traceback.print_exc()
+
+    @classmethod
+    def _cast(cls, source: Any, target: type) -> Any:
+        try:
+            return TypeDetector.cast(source, target)
+        except TypeConversionError:
+            raise
+        except Exception as e:
+            cls._trace()
+            raise TypeConversionError(
+                f"Cannot convert '{source}' to {target.__name__}: {e}"
+            ) from e
+
+    def get(self, key: str, default: Any = None, cast_type: Optional[type] = None, reload: Optional[bool] = None, with_os: Optional[bool] = True) -> Any:
         """
         Get environment variable with automatic type detection.
 
         `reload` controls whether the backing config file is re-read:
           - None (default): "auto" - re-read the file only if its content
-            hash has changed, instead of unconditionally re-parsing it on
-            every call. Only applies to a file that's already being
-            tracked (self._filepath) - a file that didn't exist at all
-            when this DotEnv/load_env() was set up is NOT auto-discovered
-            later; call load_env()/.load() again (or pass reload=True)
-            if one appears after the fact.
-          - True: always force a full reload of the file.
+            hash has changed. Only applies to a file that's already being
+            tracked (self._filepath); a file that appeared later is NOT
+            auto-discovered - call load_env()/.load() again or pass
+            reload=True.
+          - True: force a full reload of the file (also discovers a config
+            file that appeared after construction). NOTE: load() runs with
+            override=True, so keys that exist only in memory (e.g. added via
+            .set()) and are not in the file are dropped.
           - False: never check/reload the file for this call.
 
         Regardless of `reload`, if `with_os` is True (default) a change to
@@ -1011,20 +1038,15 @@ class DotEnv(metaclass=DotEnvMeta):
         `os.environ['X'] = 'new'` directly) is still picked up, since that's
         a cheap comparison rather than a full file reparse.
         """
-
-        debug(self__filepath = self._filepath)
-        if getattr(self, 'hash', None):
-            debug(self_hash = self.hash)
-            
-        debug(reload = reload)
-
-        # if reload:
-        #     self.load(self._filepath, apply_to_os=True)
-        # elif reload is None:
-        # print(f"reload: {reload}")
-        if reload:
+        # --- file reload ---------------------------------------------------
+        if reload is None:
             self._auto_reload()
-        # reload=False: skip the file check/reload entirely for this call
+        elif reload:
+            fp = self._filepath
+            # tracked file vanished -> keep serving what we have (same as check_file)
+            if not fp or os.path.exists(fp):
+                self.load(fp, apply_to_os=True, os_overwrite=True)
+                self._sync_system_env()
 
         # NOTE: if no config file is tracked at all (self._filepath is
         # None), the file is never auto-discovered here on purpose - see
@@ -1032,9 +1054,9 @@ class DotEnv(metaclass=DotEnvMeta):
         # or pass reload=True, if a file appeared after construction.
         # print(f"self._raw [1]: {self._raw}")
         raw_value = self._raw.get(key)
-        # print(f"raw_value [1]: {raw_value}")
         value = self._data.get(key)
 
+        # --- os.environ ----------------------------------------------------
         if with_os:
             os_raw = os.environ.get(key)
             if value is None:
@@ -1068,15 +1090,24 @@ class DotEnv(metaclass=DotEnvMeta):
         debug(cast_type = cast_type)  # type: ignore
         if cast_type:
             source = raw_value if raw_value is not None else TypeDetector.to_string(value)
-            try:
-                return TypeDetector.cast(source, cast_type)
-            except TypeConversionError:
-                raise
-            except Exception as e:
-                if str(os.getenv('TRACEBACK', '0')).lower() in ('1', 'true', 'yes'):
-                    traceback.print_exc()
-                raise TypeConversionError(f"Cannot convert '{source}' to {cast_type.__name__}: {e}")
-        debug(value = value)  # type: ignore
+            return self._cast(source, cast_type)
+
+        # --- automatic container detection ---------------------------------
+        raw = raw_value.strip() if isinstance(raw_value, str) else ""
+        if raw:
+            if raw[0] == '[' and raw[-1] == ']':
+                return self._cast(raw[1:-1], list)
+            if raw[0] == '(' and raw[-1] == ')':
+                return self._cast(raw[1:-1], tuple)
+            if raw[0] == '{' and raw[-1] == '}':
+                try:
+                    return set_or_dict(raw)
+                except ValueError:
+                    return value            # malformed braces: keep detected value
+            if ',' in raw and not raw.startswith(('[', '(', '{')) \
+                    and not raw.endswith((']', ')', '}')):
+                return self._cast(raw, list)
+
         return value
     
     def get_config(self, *args, **kwargs):
@@ -1607,9 +1638,9 @@ def load_env(
 def Env(*args, **kwargs):
     return load_env(*args, **kwargs)
 
-def show():
+def show(*args, **kwargs):
     global _global_env
-    return _global_env.show()
+    return _global_env.show(*args, **kwargs)
 
 # def configfile():
 #     global _global_env
@@ -1696,5 +1727,8 @@ def load(*args, **kwargs):
     # _global_env = DotEnv(auto_load=False)
     check =_global_env.load(*args, **kwargs)
     return check
+
+# def set_or_dict(text):
+#     return _global_env.set_or_dict(text)
 
 _filepath = _global_env._filepath

@@ -10,7 +10,7 @@ envdot: Enhanced environment variable management with multi-format support
 Supports .env, .json, .yaml, .yml, and .ini files with automatic type detection
 """
 
-from .core import DotEnv, load_env, get_env, set_env, save_env, show, data, Env
+from .core import DotEnv, load_env, get_env, set_env, save_env, show, data, Env, TypeDetector, get_logger, set_or_dict, check_file
 from .exceptions import EnvDotError, FileNotFoundError, ParseError, TypeConversionError
 from .helpers import getenv_typed, getenv_int, getenv_float, getenv_bool, getenv_str, setenv_typed, patch_os_module
 
@@ -51,5 +51,9 @@ __all__ = [
     "ParseError",
     "TypeConversionError",
     "show",
-    "data"
+    "data",
+    "TypeDetector", 
+    "get_logger", 
+    "set_or_dict", 
+    "check_file"
 ]

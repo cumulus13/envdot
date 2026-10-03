@@ -12,7 +12,7 @@ import os
 import re
 # import fnmatch
 from typing import Any, Optional, TypeVar, Union, List, Dict
-from .core import TypeDetector, get_logger
+from .core import TypeDetector, get_logger, set_or_dict
 from .exceptions import TypeConversionError
 import ast
 import json
@@ -201,10 +201,28 @@ def getenv_typed(key: str, default: Any = None, cast_type: Optional[type] = None
         except TypeConversionError:
             raise
         except Exception as e:
-            if str(os._env_dot_original_getenv('TRACEBACK', '0')).lower() in ('1', 'true', 'yes'):  # type: ignore
-                traceback.print_exc()
+            # if str(os._env_dot_original_getenv('TRACEBACK', '0')).lower() in ('1', 'true', 'yes'):  # type: ignore
+            #     traceback.print_exc()
+            core_module.DotEnv._trace()
             raise TypeConversionError(f"Cannot convert '{value}' to {cast_type.__name__}: {e}")
-    
+
+    else:
+        if value:
+            raw = value.strip() if isinstance(value, str) else ""
+            if raw:
+                if raw[0] == '[' and raw[-1] == ']':
+                    return core_module.DotEnv._cast(raw[1:-1], list)
+                if raw[0] == '(' and raw[-1] == ')':
+                    return core_module.DotEnv._cast(raw[1:-1], tuple)
+                if raw[0] == '{' and raw[-1] == '}':
+                    try:
+                        return set_or_dict(raw)
+                    except ValueError:
+                        return value            # malformed braces: keep detected value
+                if ',' in raw and not raw.startswith(('[', '(', '{')) \
+                        and not raw.endswith((']', ')', '}')):
+                    return core_module.DotEnv._cast(raw, list)
+
     return typed_value
 
 
