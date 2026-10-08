@@ -48,7 +48,10 @@ except ImportError:
     except ImportError:
         HAS_TOML = False
 
-LOG_LEVEL_ENVDOT = os.getenv('LOG_LEVEL_ENVDOT', os.getenv('ENVDOT_LOG_LEVEL', 'CRITICAL'))
+_TRUE_STRINGS = ('1', 'true', 'ok', 'yes', 'on')
+
+# Valid logging level names only; anything else falls back to CRITICAL.
+LOG_LEVEL_ENVDOT = str(os.getenv('LOG_LEVEL_ENVDOT', os.getenv('ENVDOT_LOG_LEVEL', 'CRITICAL'))).upper()
 tprint = None  # type: ignore
 SHOW_LOGGING_ENVDOT = False
 
@@ -57,17 +60,29 @@ import traceback
 
 # Fallback functions
 def _fallback_print_exception(e):
-    print(traceback.format_exc())
+    print(traceback.format_exc(), file=sys.stderr)
+
+def is_debug() -> bool:
+    """Debug mode is opt-in via the environment or an envdot-specific flag.
+
+    A bare ``--debug`` in the HOST application's argv is deliberately NOT
+    honoured: a library must not change behaviour because the application
+    that embeds it happens to have its own ``--debug`` option.
+    """
+    if str(os.getenv('DOTENV_DEBUG', os.getenv('ENVDOT_DEBUG', '0'))).lower() in _TRUE_STRINGS:
+        return True
+    return any(a in ('--envdot-debug', '--debug-envdot') for a in sys.argv[1:])
+
 
 def _fallback_logger():
     import logging
+    from .custom_logging import get_logger as _get
+    level = getattr(logging, LOG_LEVEL_ENVDOT, logging.CRITICAL)
+    if level and not str(level).isdigit():
+        level = logging.CRITICAL
+    # A library stays silent (NullHandler) unless debug mode was asked for.
+    return _get('envdot', level=level, handler=is_debug)  # type: ignore
 
-    try:
-        from .custom_logging import get_logger  # type: ignore
-    except ImportError:
-        from custom_logging import get_logger  # type: ignore
-    
-    return get_logger('envdot', level=getattr(logging, LOG_LEVEL_ENVDOT.upper(), logging.CRITICAL))
 
 def _fallback_pydebugger(data=None, debug: Optional[Union[bool,int]] = False, **kwargs):  # type: ignore
     os.environ['NO_LOGGING'] = "1"
@@ -90,7 +105,7 @@ def get_richcolorlog():
         try:
             from richcolorlog import setup_logging  # type: ignore
             _richcolorlog_available = setup_logging
-        except:
+        except Exception:
             _richcolorlog_available = False
     return _richcolorlog_available
 
@@ -108,22 +123,19 @@ def get_richcolorlog_print_exception():
 def tprint(e):
     rcl = get_richcolorlog()
     if rcl:
-        return rcl.print_exception(e)
+        return rcl.print_exception(e)  # type: ignore
     else:
         return _fallback_print_exception(e)
 
 def get_logger():
     rcl = get_richcolorlog()
     if rcl:
-        return rcl(
-        name="envdot",
-        level=LOG_LEVEL_ENVDOT,
-        show=SHOW_LOGGING_ENVDOT
-    )
-        # print(f"os.getenv('LOGGING')   [ENVDOT]: {os.getenv('LOGGING')}")
-        # print(f"os.getenv('NO_LOGGING')[ENVDOT]: {os.getenv('NO_LOGGING')}")
-    else:
-        return _fallback_logger()
+        try:
+            return rcl(name="envdot", level=LOG_LEVEL_ENVDOT, show=SHOW_LOGGING_ENVDOT)
+        except Exception:
+            pass
+    return _fallback_logger()
+
 
 def get_pydebugger():
     global _pydebugger_available
@@ -155,14 +167,8 @@ if (len(sys.argv) > 1 and any(arg in ('--debug', '--envdot-debug', '--debug-envd
     # debug = get_debug()
     from pydebugger.debug import debug
 else:
-    # debug = _fallback_pydebugger
-    # os.environ.pop("DEBUG", None)
-    # os.environ.pop("PYDEBUGGER", None)
-    def debug(*args, **kwargs):
+    def debug(*args, **kwargs):  # type: ignore
         return
-
-# print(f"LOG_LEVEL_ENVDOT: {LOG_LEVEL_ENVDOT}")
-# print(f"SHOW_LOGGING_ENVDOT: {SHOW_LOGGING_ENVDOT}")
 
 logger = get_logger()
 
@@ -186,15 +192,15 @@ class TypeDetector:
         """
         if not isinstance(value, str):
             return value
-        
+
         value = value.strip()
-        
-        if value.lower() in ('none', 'null', ''):
+        low = value.lower()
+
+        if low in ('none', 'null', ''):
             return None
-        
-        if value.lower() in ('true', 'yes', 'on'):
+        if low in ('true', 'yes', 'on'):
             return True
-        elif value.lower() in ('false', 'no', 'off'):
+        if low in ('false', 'no', 'off'):
             return False
 
         try:
@@ -214,8 +220,23 @@ class TypeDetector:
         # so this simply documents that '1'/'0' resolve to int here -
         # use cast_type=bool explicitly if a boolean is what you want).
         
+        raw = value.strip() if isinstance(value, str) else ""
+        if raw:
+            if raw[0] == '[' and raw[-1] == ']':
+                return DotEnv._cast(raw[1:-1], list)
+            if raw[0] == '(' and raw[-1] == ')':
+                return DotEnv._cast(raw[1:-1], tuple)
+            if raw[0] == '{' and raw[-1] == '}':
+                try:
+                    return set_or_dict(raw)
+                except ValueError:
+                    return value            # malformed braces: keep detected value
+            if ',' in raw and not raw.startswith(('[', '(', '{')) \
+                    and not raw.endswith((']', ')', '}')):
+                return DotEnv._cast(raw, list)
+
         return value
-    
+
     @staticmethod
     def to_string(value: Any) -> str:
         """Convert any value to string for storage"""
@@ -231,13 +252,17 @@ class TypeDetector:
     def cast(raw: Any, cast_type: type) -> Any:
         """
         Cast a value to `cast_type`, working from the ORIGINAL raw string
-        whenever possible (rather than from a value already mangled by
-        auto_detect). This is what makes cast_type reliable: e.g.
-        RETRY_COUNT="1" auto-detects fine as int now, but even for
-        ambiguous/edge cases the explicit cast always goes back to source.
+        whenever possible.
+
+        Always raises :class:`TypeConversionError` (with the original
+        exception chained) when the value cannot be converted, so every
+        caller gets one consistent, catchable error type.
         """
         if raw is None:
             return None
+
+        if cast_type == str:
+            return str(raw)
 
         if cast_type == bool:
             if isinstance(raw, bool):
@@ -297,15 +322,16 @@ class TypeDetector:
 
 class FileHandler:
     """Handle different file format operations"""
-    
+
     @staticmethod
     def detect_format(filepath: Path) -> str:
         """Detect file format from extension"""
+        filepath = Path(filepath)
         name = filepath.name
-        
+
         # Handle dotfiles properly
         if name.startswith('.') and len(name.split('.')) == 2:
-            ext = name
+            ext = name.lower()
         else:
             ext = filepath.suffix.lower()
         
@@ -373,7 +399,7 @@ class FileHandler:
 
     @staticmethod
     def _fix_invalid_json(content: str) -> str:
-        """Fix common JSON issues"""
+        """Fix common JSON issues (best-effort fallback when json5 is absent)"""
         content = content.replace('\\"', '___ESCAPED_DOUBLE___')
         content = content.replace("\\'", '___ESCAPED_SINGLE___')
         content = content.replace("'", '"')
@@ -383,6 +409,7 @@ class FileHandler:
         content = re.sub(r',\s*]', ']', content)
         return content
 
+    # ------------------------------------------------------------------ yaml
     @staticmethod
     def load_yaml_file(filepath: Path) -> Dict[str, str]:
         """Load .yaml/.yml file"""

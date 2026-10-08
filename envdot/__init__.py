@@ -15,24 +15,35 @@ from .exceptions import EnvDotError, FileNotFoundError, ParseError, TypeConversi
 from .helpers import getenv_typed, getenv_int, getenv_float, getenv_bool, getenv_str, setenv_typed, patch_os_module
 
 
+
 def get_version():
-    import traceback
-    from pathlib import Path
     import os
     try:
-        version_file = Path(__file__).parent / "__version__.py"
-        if version_file.is_file():
-            with open(version_file, "r") as f:
-                for line in f:
-                    if line.strip().startswith("version"):
-                        parts = line.split("=")
-                        if len(parts) == 2:
-                            return parts[1].strip().strip('"').strip("'")
+        from importlib.metadata import version, PackageNotFoundError  # py3.8+
+        try:
+            return version("envdot")
+        except PackageNotFoundError:
+            pass
+    except Exception:
+        pass
+
+    try:
+        from pathlib import Path
+        for candidate in (Path(__file__).parent / "__version__.py",
+                          Path(__file__).parent.parent / "__version__.py"):
+            if candidate.is_file():
+                with open(candidate, "r", encoding="utf-8") as f:
+                    for line in f:
+                        if line.strip().startswith("version"):
+                            parts = line.split("=", 1)
+                            if len(parts) == 2:
+                                return parts[1].strip().strip('"').strip("'")
     except Exception as e:
         if os.getenv('TRACEBACK') and os.getenv('TRACEBACK') in ['1', 'true', 'True']:
+            import traceback
             print(traceback.format_exc())
         else:
-            print(f"ERROR: {e}")
+            print(f"WARNING: No __version__ file found: {e}")
 
     return "1.0.0"
 
@@ -55,5 +66,12 @@ __all__ = [
     "TypeDetector", 
     "get_logger", 
     "set_or_dict", 
-    "check_file"
+    "check_file",
+    "getenv_typed",
+    "getenv_int",
+    "getenv_float",
+    "getenv_bool",
+    "getenv_str",
+    "setenv_typed",
+    "patch_os_module",
 ]

@@ -136,7 +136,7 @@ _original_getenv = os.getenv if not hasattr(os, '_env_dot_original_getenv') else
 os._env_dot_original_getenv = _original_getenv  # type: ignore
 
 
-def getenv_typed(key: str, default: Any = None, cast_type: Optional[type] = None) -> Any:
+def getenv_typed(key: str, default: Any = None, cast_type: Optional[type] = None, **kwargs) -> Any:
     """
     Enhanced version of os.getenv() with automatic type detection
     
@@ -183,15 +183,22 @@ def getenv_typed(key: str, default: Any = None, cast_type: Optional[type] = None
 
     os._env_dot_original_getenv = _original_getenv  # type: ignore
 
-    value = os._env_dot_original_getenv(key)  # type: ignore
-    # print(f"value: {value}")
+    value = core_module.get_env(key, default, **kwargs)
+    # print(f"value [0]: {value}, type: {type(value)}")
+    if not value:
+        value = os._env_dot_original_getenv(key, default)  # type: ignore
+    # print(f"value [1]: {value}, type: {type(value)}")
 
-    if value is None:
-        return default
+    if default and not value:
+        value = default
+    elif not value and not default:
+        return None
     
     # Auto-detect type (never mangles the raw string - see TypeDetector.auto_detect)
     typed_value = TypeDetector.auto_detect(value)
-    
+    # print(f"typed_value: {typed_value}")
+    # print(f"cast_type: {cast_type}")
+
     # Apply explicit type casting if requested - cast from the ORIGINAL raw
     # string (`value`), not from `typed_value`, so cast_type is reliable
     # even in ambiguous cases and never gets undermined by auto-detection.
