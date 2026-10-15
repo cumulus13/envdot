@@ -976,11 +976,21 @@ class DotEnv(metaclass=DotEnvMeta):
         state of the file on disk rather than a stale snapshot from
         whenever it happened to last be loaded.
         """
-        check = self.check_file()
-        # print(f"check: {check}")
-        if not check: # file hash changed == not same
-            self.load(self._filepath, apply_to_os=True, os_overwrite=True)
-        self._sync_system_env()
+        # Re-entrancy guard: logging inside check_file()/load() may call the
+        # patched os.getenv, which reads back into this instance. Use
+        # __dict__ directly - a normal getattr() on a missing name would hit
+        # __getattr__, which calls _auto_reload() again.
+        if self.__dict__.get('_reloading', False):
+            return
+        object.__setattr__(self, '_reloading', True)  # bypass __setattr__
+        try:
+            check = self.check_file()
+            # print(f"check: {check}")
+            if not check: # file hash changed == not same
+                self.load(self._filepath, apply_to_os=True, os_overwrite=True)
+            self._sync_system_env()
+        finally:
+            object.__setattr__(self, '_reloading', False)
 
     def enable_system_watch(self, ignore=('PATH',), min_interval: float = 0.25, backend=None) -> bool:
         """

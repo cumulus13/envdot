@@ -138,6 +138,27 @@ os._env_dot_original_getenv = _original_getenv  # type: ignore
 
 def getenv_typed(key: str, default: Any = None, cast_type: Optional[type] = None, **kwargs) -> Any:
     """
+    Get an environment variable with automatic type detection.
+    See `_getenv_typed_impl` for details.
+
+    Re-entrancy safe: once os.getenv is replaced by this function, anything
+    called while it runs (loggers such as richcolorlog call os.getenv() on
+    every log line, check_file(), load(), ...) would call straight back into
+    it forever. The busy flag is therefore held for the WHOLE call, and any
+    nested call gets a plain, untyped lookup on the original os.getenv.
+    """
+    if getattr(_reentry, 'busy', False):
+        return _original_getenv(key, default)
+
+    _reentry.busy = True
+    try:
+        return _getenv_typed_impl(key, default, cast_type, **kwargs)
+    finally:
+        _reentry.busy = False
+
+
+def _getenv_typed_impl(key: str, default: Any = None, cast_type: Optional[type] = None, **kwargs) -> Any:
+    """
     Enhanced version of os.getenv() with automatic type detection
     
     This function wraps os.getenv() and automatically detects and converts
@@ -164,18 +185,12 @@ def getenv_typed(key: str, default: Any = None, cast_type: Optional[type] = None
 
     import envdot.core as core_module
 
-    # Re-entrancy guard: loggers (e.g. richcolorlog) call os.getenv() on
-    # every log line. Once os.getenv is replaced by this function, logging
-    # inside check_file()/load() would call back into here forever.
-    if not getattr(_reentry, 'busy', False):
-        _reentry.busy = True
-        try:
-            check = core_module.check_file()
-            if not check:
-                core_module.load(apply_to_os=True, os_overwrite=True)
-            core_module.sync_system_env()
-        finally:
-            _reentry.busy = False
+    # The re-entrancy guard (busy flag) is held by getenv_typed() for the
+    # whole call, so everything below - including get_env() - is protected.
+    check = core_module.check_file()
+    if not check:
+        core_module.load(apply_to_os=True, os_overwrite=True)
+    core_module.sync_system_env()
 
     global _original_getenv
 
