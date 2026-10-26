@@ -21,7 +21,6 @@ __pycache__/
 *.json
 *.ini
 *.yaml
-*.yml
 .env
 output.env
 # Added entries (1 items)
